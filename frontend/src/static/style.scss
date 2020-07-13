@@ -25,44 +25,30 @@ MAIN {
     background-image: linear-gradient(180deg, #AFA 0%, #8C8 100%);
     H1 {
       width: 100%;
-      font-size: 1.5em;
+      font-size: 1.5rem;
     }
   }
   ARTICLE {
     flex: 0 1 auto;
     overflow: scroll;
-    H2, BUTTON, .inputBlock {
-      border: 2px solid #8C8;
-      background: #AFA;
-      border-radius: 0.5em;
-      display: block;
-      width: 90vw;
-      margin: 1em auto;
-    }
-    .textInput {
-      width: 90vw;
-      font-size: 2em;
-      border-radius: 0.5em;
-      padding: 0.5em;
-    }
+    padding: 1rem;
     .inputBlock {
+      border: 2px solid #8C8;
+      border-radius: 0.5rem;
+      margin: 1rem auto;
+      display: block;
       background: white;
       P {
         margin: 0px;
-        padding: 0.5em;
+        padding: 0.5rem;
       }
-      CANVAS {
-        border: 1px solid red;
-        //width: 100%;
-      }
-    }
-    H2, BUTTON {
-      padding: 0.5em 1em;
-      font-size: 2em;
     }
     CANVAS, IMG {
       background: #FFF;
-      border-radius: 0.5em;
+      border-radius: 0.5rem;
+    }
+    CANVAS {
+      border: 1px solid red;
     }
   }
   FOOTER {
@@ -70,6 +56,14 @@ MAIN {
     border-top: 1px solid black;
     background-image: linear-gradient(180deg, #8C8 0%, #AFA 100%);
     text-align: center;
-    padding: 0.5em;
+    padding: 0 1rem;
   }
+}
+
+INPUT[type="text"], INPUT[type="button"] {
+  font-size: 2rem;
+  padding: 0.5rem;
+  width: 100%;
+  border-radius: 0.5rem;
+  margin: 1rem auto;
 }

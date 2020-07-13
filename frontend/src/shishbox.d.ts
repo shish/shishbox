@@ -18,13 +18,14 @@ type State = {
         name: string,
         color: string,
     }
-    game: {
+    room: {
         id: string,
         tick: number,
         players: Array<Player>,
-        stacks: Array<Array<string>>,
     },
-    tmp_text_input: "",
-    tmp_draw_input: Array<Array<number|boolean>>,
-    tmp_draw_pressed: boolean,
+    wd: {
+        stacks: Array<Array<string>>,
+        tmp_text_input: "",
+        tmp_draw_last: Array<number>,    
+    },
 }

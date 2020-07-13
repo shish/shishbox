@@ -1,7 +1,8 @@
 {
     "name": "shishbox",
     "dependencies": {
-        "hyperapp": "^2.0.4"
+        "hyperapp": "^2.0.4",
+        "sentence-engine": "^0.3.0"
     },
     "scripts": {
         "build": "parcel build --public-url . src/index.html --experimental-scope-hoisting",

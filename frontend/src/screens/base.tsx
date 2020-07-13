@@ -1,18 +1,18 @@
 import {h} from "hyperapp";
 
 export const Screen = (
-    {title}: {title: string},
+    {header, footer}: {header: string, footer: any},
     children
 ) => (
     <main>
         <header>
-            <h1 onclick={function(state) {console.log(state); return state;}}>{title}</h1>
+            <h1 onclick={function(state) {console.log(state); return state;}}>{header}</h1>
         </header>
         <article>
             {children}
         </article>
         <footer>
-            &copy; Shish 2020 - <a href="https://github.com/shish/shishbox">Source</a>
+            {footer}
         </footer>
     </main>
 );
