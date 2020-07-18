@@ -11,9 +11,21 @@ A party-game toolbox
 - Pass to the left, the new paper-holder describes the drawing, and then folds the paper to hide the drawing
 - Repeat until the paper has gone all the way round
 
-## Dev Setup:
+## Frontend setup:
 
 ```
+cd frontend
 npm install
 npm run serve
 ```
+
+Traffic served on http://localhost:1238/
+
+## Backend setup:
+
+```
+cd backend
+cargo run
+```
+
+Traffic served on http://localhost:1239/

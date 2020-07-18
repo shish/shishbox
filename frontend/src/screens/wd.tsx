@@ -31,8 +31,8 @@ const templates = [
 ];
 let vocabulary = {
     race: ["robot", "elf", "alien", "skeleton", "dragon", "ghost"],
-    job: ["chef", "wizard", "ninja", "pirate", "fairy", "clown", "hacker", "superhero", "angel", "demon"],
-    animal: ["frog", "sheep", "cat", "monkey", "worm", "unicorn", "bird", "turtle", "bat"],
+    job: ["chef", "wizard", "ninja", "pirate", "fairy", "clown", "hacker", "superhero", "angel", "demon", "astronaut"],
+    animal: ["frog", "sheep", "cat", "monkey", "worm", "unicorn", "bird", "turtle", "bat", "octopus"],
     role: ["king", "queen", "prince", "princess"],
     food: ["cake", "pie", "banana", "carrot", "pumpkin", "pear", "cheese", "flower"],
     event: ["birthday party", "job interview"],

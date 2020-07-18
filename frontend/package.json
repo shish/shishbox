@@ -1,5 +1,5 @@
 {
-    "name": "shishbox",
+    "name": "shishbox-fe",
     "dependencies": {
         "hyperapp": "^2.0.4",
         "sentence-engine": "^0.3.0"
