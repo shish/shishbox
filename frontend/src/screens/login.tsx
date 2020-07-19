@@ -40,8 +40,8 @@ const About = () => (
 
 export const Login = ({state}: { state: State }) => (
     <Screen header={"Join a Game"} footer={<About/>}>
-        <input type="text" id="room" placeholder="Enter Room Code" />
-        <input type="text" id="name" placeholder="Enter Your Name" />
+        <input type="text" id="room" placeholder="Enter Room Code" value="12345" />
+        <input type="text" id="name" placeholder="Enter Your Name" value="Shish" />
         <input type="button" value="Play" onclick={LoginAction} />
     </Screen>
 );
