@@ -17,12 +17,16 @@ static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 ///
 /// - Key is their id
 /// - Value is a sender of `warp::ws::Message`
-type Users = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Result<Message, warp::Error>>>>>;
+#[derive(Default)]
+struct Room {
+    clients: HashMap<usize, mpsc::UnboundedSender<Result<Message, warp::Error>>>
+}
+type GlobalRooms = Arc<RwLock<Room>>;
 
 #[derive(Deserialize)]
 struct RoomLogin {
-    id: String,
-    name: String,
+    room: String,
+    user: String,
 }
 
 #[tokio::main]
@@ -31,19 +35,19 @@ async fn main() {
 
     // Keep track of all connected users, key is usize, value
     // is a websocket sender.
-    let users = Users::default();
+    let rooms = GlobalRooms::default();
     // Turn our "state" into a new Filter...
-    let users = warp::any().map(move || users.clone());
+    let rooms = warp::any().map(move || rooms.clone());
 
     // GET /room -> websocket upgrade
     let room = warp::path("room")
         // The `ws()` filter will prepare Websocket handshake...
         .and(warp::ws())
-        .and(users)
+        .and(rooms)
         .and(warp::query::<RoomLogin>())
-        .map(|ws: warp::ws::Ws, users, login: RoomLogin| {
+        .map(|ws: warp::ws::Ws, rooms, login: RoomLogin| {
             // This will call our function if the handshake succeeds.
-            ws.on_upgrade(move |socket| user_connected(socket, users, login))
+            ws.on_upgrade(move |socket| user_connected(socket, rooms, login))
         });
 
     // GET / -> index html
@@ -56,11 +60,11 @@ async fn main() {
     warp::serve(routes).run(([127, 0, 0, 1], 1239)).await;
 }
 
-async fn user_connected(ws: WebSocket, users: Users, login: RoomLogin) {
+async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     // Use a counter to assign a new unique ID for this user.
     let my_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
 
-    eprintln!("new chat user {} ({}) in room {}", login.name, my_id, login.id);
+    eprintln!("new chat user {} ({}) in room {}", login.user, my_id, login.room);
 
     // Split the socket into a sender and receive of messages.
     let (user_ws_tx, mut user_ws_rx) = ws.split();
@@ -75,13 +79,13 @@ async fn user_connected(ws: WebSocket, users: Users, login: RoomLogin) {
     }));
 
     // Save the sender in our list of connected users.
-    users.write().await.insert(my_id, tx);
+    rooms.write().await.clients.insert(my_id, tx);
 
     // Return a `Future` that is basically a state machine managing
     // this specific user's connection.
 
     // Make an extra clone to give to our disconnection handler...
-    let users2 = users.clone();
+    let rooms2 = rooms.clone();
 
     // Every time the user sends a message, broadcast it to
     // all other users...
@@ -93,15 +97,15 @@ async fn user_connected(ws: WebSocket, users: Users, login: RoomLogin) {
                 break;
             }
         };
-        user_message(my_id, msg, &users).await;
+        user_message(my_id, msg, &rooms).await;
     }
 
     // user_ws_rx stream will keep processing as long as the user stays
     // connected. Once they disconnect, then...
-    user_disconnected(my_id, &users2).await;
+    user_disconnected(my_id, &rooms2).await;
 }
 
-async fn user_message(my_id: usize, msg: Message, users: &Users) {
+async fn user_message(my_id: usize, msg: Message, rooms: &GlobalRooms) {
     // Skip any non-Text messages...
     let msg = if let Ok(s) = msg.to_str() {
         s
@@ -112,7 +116,7 @@ async fn user_message(my_id: usize, msg: Message, users: &Users) {
     let new_msg = format!("<User#{}>: {}", my_id, msg);
 
     // New message from this user, send it to everyone else (except same uid)...
-    for (&uid, tx) in users.read().await.iter() {
+    for (&uid, tx) in rooms.read().await.clients.iter() {
         if my_id != uid {
             if let Err(_disconnected) = tx.send(Ok(Message::text(new_msg.clone()))) {
                 // The tx is disconnected, our `user_disconnected` code
@@ -123,9 +127,9 @@ async fn user_message(my_id: usize, msg: Message, users: &Users) {
     }
 }
 
-async fn user_disconnected(my_id: usize, users: &Users) {
+async fn user_disconnected(my_id: usize, rooms: &GlobalRooms) {
     eprintln!("good bye user: {}", my_id);
 
     // Stream closed up, so remove from the user list
-    users.write().await.remove(&my_id);
+    rooms.write().await.clients.remove(&my_id);
 }

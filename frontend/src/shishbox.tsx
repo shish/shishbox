@@ -67,8 +67,8 @@ function getOpenWebSocketListener(state: State): WebSocketListen {
     let url =
         (window.location.protocol == "https:" ? "wss:" : "ws:") +
         "//" + window.location.host +
-        "/room?id=" + state.room.id +
-        "&name=" + state.user.name +
+        "/room?room=" + state.room.id +
+        "&user=" + state.user.name +
         "&_=" + state.ws_errors;
     if (!mySubs[url]) {
         mySubs[url] = WebSocketListen({
@@ -84,6 +84,7 @@ function getOpenWebSocketListener(state: State): WebSocketListen {
                 };
             },
             action(state: State, msg: MessageEvent) {
+                console.log("ws.action(", msg, ")");
                 return refresh(state);
             },
             error(state: State, response) {
