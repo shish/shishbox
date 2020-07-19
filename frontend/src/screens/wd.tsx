@@ -126,7 +126,7 @@ const TextInput = ({stack}: { stack: Array<string> }) => (
 
 function SubmitDraw(state: State): State {
     let stacks = state.wd.stacks;
-    let canvas = document.getElementById("canvas");
+    let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     console.log("SubmitDraw()");
     stacks[0].push(canvas.toDataURL());
     return {
@@ -166,24 +166,24 @@ const DrawInput = ({stack}: { stack: Array<string> }) => (
 function DrawMove(state: State, e: MouseEvent|TouchEvent): State {
     e.preventDefault();
 
-    var rect = e.target.getBoundingClientRect();
+    var rect = (e.target as Element).getBoundingClientRect();
     let drawing = true;
 
     let x=0, y=0;
     if(e.type == "touchstart" || e.type == "touchmove") {
-        let te: TouchEvent = e;
+        let te = e as TouchEvent;
         x = te.changedTouches[0].clientX - rect.left;
         y = te.changedTouches[0].clientY - rect.top;
     }
     else {
-        let me: MouseEvent = e;
+        let me = e as MouseEvent;
         x = me.clientX - rect.left;
         y = me.clientY - rect.top;
         drawing = false;
     }
 
     if(drawing) {
-        let canvas: HTMLCanvasElement = document.getElementById("canvas");
+        let canvas = document.getElementById("canvas") as HTMLCanvasElement;
         let context = canvas.getContext("2d");
         context.strokeStyle = "#000";
         context.lineJoin = "round";
@@ -211,7 +211,7 @@ function DrawMove(state: State, e: MouseEvent|TouchEvent): State {
 }
 
 function DrawClear(state: State): State {
-    let canvas: HTMLCanvasElement = document.getElementById("canvas");
+    let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     let context = canvas.getContext("2d");
     context.clearRect(0, 0, canvas.width, canvas.height);
     return state;

@@ -2,8 +2,8 @@ import {h} from "hyperapp";
 import {Screen} from "./base";
 
 function LoginAction(state) {
-    let name = document.getElementById("name").value;
-    let room = document.getElementById("room").value;
+    let name = (document.getElementById("name") as HTMLFormElement).value;
+    let room = (document.getElementById("room") as HTMLFormElement).value;
 
     return {
         ...state,
@@ -14,6 +14,7 @@ function LoginAction(state) {
         room: {
             ...state.room,
             id: room,
+            game: "wd",
             tick: -1,
             players: [
                 {name: name},

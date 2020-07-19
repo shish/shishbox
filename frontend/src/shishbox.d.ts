@@ -13,6 +13,12 @@ type Stack = {
 
 }
 
+type WdGameState = {
+    stacks: Array<Array<string>>,
+    tmp_text_input: "",
+    tmp_draw_last: Array<number>,
+}
+
 type State = {
     user: {
         name: string,
@@ -20,12 +26,11 @@ type State = {
     }
     room: {
         id: string,
+        game: string,
         tick: number,
         players: Array<Player>,
     },
-    wd: {
-        stacks: Array<Array<string>>,
-        tmp_text_input: "",
-        tmp_draw_last: Array<number>,    
-    },
+    wd: WdGameState,
+    ws_errors: number,
+    loading: boolean,
 }

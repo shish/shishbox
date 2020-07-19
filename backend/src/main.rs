@@ -4,7 +4,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
-
+use serde::Deserialize;
 use futures::{FutureExt, StreamExt};
 use tokio::sync::{mpsc, RwLock};
 use warp::ws::{Message, WebSocket};
@@ -19,6 +19,12 @@ static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 /// - Value is a sender of `warp::ws::Message`
 type Users = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Result<Message, warp::Error>>>>>;
 
+#[derive(Deserialize)]
+struct RoomLogin {
+    id: String,
+    name: String,
+}
+
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
@@ -29,31 +35,32 @@ async fn main() {
     // Turn our "state" into a new Filter...
     let users = warp::any().map(move || users.clone());
 
-    // GET /chat -> websocket upgrade
-    let chat = warp::path("chat")
+    // GET /room -> websocket upgrade
+    let room = warp::path("room")
         // The `ws()` filter will prepare Websocket handshake...
         .and(warp::ws())
         .and(users)
-        .map(|ws: warp::ws::Ws, users| {
+        .and(warp::query::<RoomLogin>())
+        .map(|ws: warp::ws::Ws, users, login: RoomLogin| {
             // This will call our function if the handshake succeeds.
-            ws.on_upgrade(move |socket| user_connected(socket, users))
+            ws.on_upgrade(move |socket| user_connected(socket, users, login))
         });
 
     // GET / -> index html
     let files = warp::fs::dir("../frontend/dist/");
     // warp::path::end().map(|| warp::reply::html(INDEX_HTML));
 
-    let routes = files.or(chat);
+    let routes = files.or(room);
 
     println!("Serving at localhost:1239");
     warp::serve(routes).run(([127, 0, 0, 1], 1239)).await;
 }
 
-async fn user_connected(ws: WebSocket, users: Users) {
+async fn user_connected(ws: WebSocket, users: Users, login: RoomLogin) {
     // Use a counter to assign a new unique ID for this user.
     let my_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
 
-    eprintln!("new chat user: {}", my_id);
+    eprintln!("new chat user {} ({}) in room {}", login.name, my_id, login.id);
 
     // Split the socket into a sender and receive of messages.
     let (user_ws_tx, mut user_ws_rx) = ws.split();
