@@ -15,12 +15,14 @@ use warp::Filter;
 static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 
 /// Our state of currently connected users.
-///
-/// - Key is their id
-/// - Value is a sender of `warp::ws::Message`
+struct Player {
+    name: String,
+    conn: mpsc::UnboundedSender<Result<Message, warp::Error>>
+}
+
 #[derive(Default)]
 struct Room {
-    clients: HashMap<usize, mpsc::UnboundedSender<Result<Message, warp::Error>>>,
+    players: HashMap<usize, Player>,
 }
 type Rooms = HashMap<usize, Room>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
@@ -54,7 +56,6 @@ async fn main() {
 
     // GET / -> index html
     let files = warp::fs::dir("../frontend/dist/");
-    // warp::path::end().map(|| warp::reply::html(INDEX_HTML));
 
     let routes = files.or(room);
 
@@ -98,14 +99,10 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 entry.into_mut()
             }
         };
-        room.clients.insert(my_id, tx);
+        room.players.insert(my_id, Player{name: login.user.clone(), conn: tx});
     }
 
-    // Return a `Future` that is basically a state machine managing
-    // this specific user's connection.
-
-    // Every time the user sends a message, broadcast it to
-    // all other users...
+    // Read from the websocket, broadcast messages to all other users
     while let Some(result) = user_ws_rx.next().await {
         let msg = match result {
             Ok(msg) => msg,
@@ -114,29 +111,28 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 break;
             }
         };
-        user_message(my_id, msg, &rooms).await;
+        user_message(room_id, my_id, &login.user, msg, &rooms).await;
     }
 
-    // user_ws_rx stream will keep processing as long as the user stays
-    // connected. Once they disconnect, then...
+    // After we finish reading from the websocket (ie, it's closed), clean up
     {
         let mut rooms_lookup = rooms.write().await;
 
         // Stream closed up, so remove from the user list
         if let Some(room) = rooms_lookup.get_mut(&room_id) {
             eprintln!("[{}] Removing user {}", room_id, my_id);
-            room.clients.remove(&my_id);
+            room.players.remove(&my_id);
 
             // If room is empty, delete room
-            if room.clients.len() == 0 {
-                eprintln!("[{}] The final user left room, cleaning it up", room_id);
+            if room.players.len() == 0 {
+                eprintln!("[{}] Room is empty, cleaning it up", room_id);
                 rooms_lookup.remove(&room_id);
             }
         }
     }
 }
 
-async fn user_message(my_id: usize, msg: Message, rooms: &GlobalRooms) {
+async fn user_message(room_id: usize, my_id: usize, my_name: &String, msg: Message, rooms: &GlobalRooms) {
     // Skip any non-Text messages...
     let msg = if let Ok(s) = msg.to_str() {
         s
@@ -144,13 +140,13 @@ async fn user_message(my_id: usize, msg: Message, rooms: &GlobalRooms) {
         return;
     };
 
-    let new_msg = format!("<User#{}>: {}", my_id, msg);
+    let new_msg = format!("[{}] <{}> {}", room_id, my_name, msg);
     let room_id = 0;
     if let Some(room) = rooms.read().await.get(&room_id) {
         // New message from this user, send it to everyone else (except same uid)...
-        for (&uid, tx) in room.clients.iter() {
+        for (&uid, player) in room.players.iter() {
             if my_id != uid {
-                if let Err(_disconnected) = tx.send(Ok(Message::text(new_msg.clone()))) {
+                if let Err(_disconnected) = player.conn.send(Ok(Message::text(new_msg.clone()))) {
                     // The tx is disconnected, our `user_disconnected` code
                     // should be happening in another task, nothing more to
                     // do here.
