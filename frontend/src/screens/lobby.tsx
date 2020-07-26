@@ -1,8 +1,8 @@
 import {h} from "hyperapp";
 import {Screen} from "./base";
 
-export const StartAction = (state) => [
-    {...state, room: {...state.room, tick: 0}},
+const StartAction = (state: State) => [
+    {...state, room: {...state.room, lobby: false}} as State,
 ];
 
 export const Lobby = ({state}: { state: State }) => (

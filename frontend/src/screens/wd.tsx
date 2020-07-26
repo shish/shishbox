@@ -1,6 +1,8 @@
 import {h} from "hyperapp";
+import {WebSocketSend} from "hyperapp-fx";
 import Sentence from "sentence-engine";
 import {Screen} from "./base";
+import {socket_name} from "../shishbox";
 
 
 /* ====================================================================
@@ -48,27 +50,24 @@ const suggestions = shuffleArray(templates.map((t) => Sentence(t, vocabulary).ge
 = Text Input Screen
 ==================================================================== */
 
-function SubmitText(state: State): State {
-    if(state.wd.tmp_text_input == "") {
+function SubmitText(state: State) {
+    let wd = state.room as WdRoom;
+    let text = state.tmp_text_input;
+    if(text == "") {
         console.log("Not submitting an empty text");
         return state;
     }
 
-    let stacks = state.wd.stacks;
-    console.log("SubmitText("+state.wd.tmp_text_input+")");
-    stacks[0].push(state.wd.tmp_text_input);
-    return {
+    console.log("SubmitText("+text+")");
+    wd.stacks[0].push(text);
+    wd.tick = wd.tick + 1;
+
+    let new_state: State = {
         ...state,
-        room: {
-            ...state.room,
-            tick: state.room.tick+1,
-        },
-        wd: {
-            ...state.wd,
-            stacks: stacks,
-            tmp_text_input: "",
-        },
-    }
+        room: wd,
+        tmp_text_input: "",
+    };
+    return [new_state, WebSocketSend({url: socket_name(state), data: text})];
 }
 
 const InitInput = ({stack, suggestion}: { stack: Array<string>; suggestion: string }) => (
@@ -81,7 +80,7 @@ const InitInput = ({stack, suggestion}: { stack: Array<string>; suggestion: stri
             {suggestions.map((x) =>
                 <p onclick={(state: State) => ({
                     ...state,
-                    wd: {...state.wd, tmp_text_input: x},
+                    tmp_text_input: x,
                 } as State)}>"{x}"</p>
             )}
         </div>
@@ -92,7 +91,7 @@ const InitInput = ({stack, suggestion}: { stack: Array<string>; suggestion: stri
             oninput={(state: State, event: FormInputEvent) =>
                 ({
                     ...state,
-                    wd: {...state.wd, tmp_text_input: event.target.value,},
+                    tmp_text_input: event.target.value,
                 } as State)
             }
         />
@@ -112,7 +111,7 @@ const TextInput = ({stack}: { stack: Array<string> }) => (
             oninput={(state: State, event: FormInputEvent) =>
                 ({
                     ...state,
-                    wd: {...state.wd, tmp_text_input: event.target.value,},
+                    tmp_text_input: event.target.value,
                 } as State)
             }
         />
@@ -125,21 +124,12 @@ const TextInput = ({stack}: { stack: Array<string> }) => (
 ==================================================================== */
 
 function SubmitDraw(state: State): State {
-    let stacks = state.wd.stacks;
+    let wd = state.room as WdRoom;
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     console.log("SubmitDraw()");
-    stacks[0].push(canvas.toDataURL());
-    return {
-        ...state,
-        room: {
-            ...state.room,
-            tick: state.room.tick+1,
-        },
-        wd: {
-            ...state.wd,
-            stacks: stacks,
-        },
-    }
+    wd.stacks[0].push(canvas.toDataURL());
+    wd.tick = wd.tick + 1;
+    return { ...state, room: wd }
 }
 
 const DrawInput = ({stack}: { stack: Array<string> }) => (
@@ -179,7 +169,7 @@ function DrawMove(state: State, e: MouseEvent|TouchEvent): State {
         let me = e as MouseEvent;
         x = me.clientX - rect.left;
         y = me.clientY - rect.top;
-        drawing = false;
+        drawing = false; // when should drawing be true??
     }
 
     if(drawing) {
@@ -191,7 +181,7 @@ function DrawMove(state: State, e: MouseEvent|TouchEvent): State {
     
         context.beginPath();
         if(e.type == "mousemove" || e.type == "touchmove") {
-            context.moveTo(state.wd.tmp_draw_last[0], state.wd.tmp_draw_last[1]);
+            context.moveTo(state.tmp_draw_last[0], state.tmp_draw_last[1]);
         }
         else { // mousedown / touchstart
             context.moveTo(x-1, y-1);
@@ -201,13 +191,7 @@ function DrawMove(state: State, e: MouseEvent|TouchEvent): State {
         context.stroke();
     }
 
-    return {
-        ...state,
-        wd: {
-            ...state.wd,
-            tmp_draw_last: [x, y],
-        }
-    };
+    return { ...state, tmp_draw_last: [x, y] };
 }
 
 function DrawClear(state: State): State {
@@ -222,10 +206,11 @@ function DrawClear(state: State): State {
 = Overall states
 ==================================================================== */
 
-export const WriteyDrawey = ({state}: { state: State }) => (
-    state.wd.stacks[0].length == 0 ?
-        <InitInput suggestion={state.wd.tmp_text_input} stack={state.wd.stacks[0]} /> :
-        state.wd.stacks[0].length % 2 == 0 ?
-            <TextInput stack={state.wd.stacks[0]} /> :
-            <DrawInput stack={state.wd.stacks[0]} />
-);
+export function WriteyDrawey({state}: { state: State }) {
+    let wd = state.room as WdRoom;
+    return wd.stacks[0].length == 0 ?
+        <InitInput suggestion={state.tmp_text_input} stack={wd.stacks[0]} /> :
+        wd.stacks[0].length % 2 == 0 ?
+            <TextInput stack={wd.stacks[0]} /> :
+            <DrawInput stack={wd.stacks[0]} /> ;
+}

@@ -1,25 +1,17 @@
 import {h} from "hyperapp";
 import {Screen} from "./base";
 
-function LoginAction(state) {
-    let name = (document.getElementById("name") as HTMLFormElement).value;
+function LoginAction(state: State): State {
+    let user = (document.getElementById("user") as HTMLFormElement).value;
     let room = (document.getElementById("room") as HTMLFormElement).value;
 
     return {
         ...state,
-        user: {
-            ...state.user,
-            name: name,
+        conn: {
+            user: user,
+            room: room,
         },
-        room: {
-            ...state.room,
-            id: room,
-            game: "wd",
-            tick: -1,
-            players: [
-                {name: name},
-            ]
-        }
+        loading: "Connecting...",
     };
 }
 
@@ -41,7 +33,7 @@ const About = () => (
 export const Login = ({state}: { state: State }) => (
     <Screen header={"Join a Game"} footer={<About/>}>
         <input type="text" id="room" placeholder="Enter Room Code" value="12345" />
-        <input type="text" id="name" placeholder="Enter Your Name" value="Shish" />
+        <input type="text" id="user" placeholder="Enter Your Name" value="Shish" />
         <input type="button" value="Play" onclick={LoginAction} />
     </Screen>
 );

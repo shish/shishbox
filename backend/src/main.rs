@@ -1,28 +1,30 @@
 // #![deny(warnings)]
 use futures::{FutureExt, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::{Arc};
 use tokio::sync::{mpsc, RwLock};
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
 
-/// Our global unique user id counter.
-static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
-
 /// Our state of currently connected users.
+#[derive(Serialize, Deserialize)]
 struct Player {
     name: String,
-    conn: mpsc::UnboundedSender<Result<Message, warp::Error>>
+    sess: String,
+    #[serde(skip)]
+    conn: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>> // Message
 }
 
+#[derive(Serialize, Deserialize)]
 #[derive(Default)]
 struct Room {
-    players: HashMap<usize, Player>,
+    game: String,
+    lobby: bool,
+    players: Vec<Player>,
+    stacks: Vec<Vec<String>>,
+    tick: u32,
 }
 type Rooms = HashMap<usize, Room>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
@@ -31,6 +33,7 @@ type GlobalRooms = Arc<RwLock<Rooms>>;
 struct RoomLogin {
     room: String,
     user: String,
+    sess: String,
 }
 
 #[tokio::main]
@@ -66,7 +69,6 @@ async fn main() {
 async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     // Use a counter to assign a new unique ID for this user.
     let room_id = 0;
-    let my_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
 
     // Split the socket into a sender and receive of messages.
     let (user_ws_tx, mut user_ws_rx) = ws.split();
@@ -87,41 +89,51 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
             Vacant(entry) => {
                 eprintln!(
                     "[{}] First user {} ({}) creates room ({})",
-                    room_id, login.user, my_id, login.room
+                    room_id, login.user, login.sess, login.room
                 );
                 entry.insert(Room::default())
             }
             Occupied(entry) => {
                 eprintln!(
                     "[{}] Adding user {} ({}) into room",
-                    room_id, login.user, my_id
+                    room_id, login.user, login.sess
                 );
                 entry.into_mut()
             }
         };
-        room.players.insert(my_id, Player{name: login.user.clone(), conn: tx});
+        room.game = "wd".into();
+        room.stacks.push(vec![]);
+        room.lobby = true;
+        room.players.push(Player{name: login.user.clone(), sess: login.sess.clone(), conn: Some(tx)});
     }
+
+    // Broadcast join after adding user to room, so that as
+    // soon as they connect they get a message to sync them
+    sync_room(&rooms, room_id).await;
 
     // Read from the websocket, broadcast messages to all other users
     while let Some(result) = user_ws_rx.next().await {
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
-                eprintln!("websocket error(uid={}): {}", my_id, e);
+                eprintln!("websocket error(user={}): {}", login.user, e);
                 break;
             }
         };
-        user_message(room_id, my_id, &login.user, msg, &rooms).await;
+        eprintln!("Got msg: {:?}", msg);
+        sync_room(&rooms, room_id).await;
     }
 
     // After we finish reading from the websocket (ie, it's closed), clean up
     {
+        eprintln!("[{}] Removing user {} ({})", room_id, login.user, login.sess);
         let mut rooms_lookup = rooms.write().await;
 
         // Stream closed up, so remove from the user list
         if let Some(room) = rooms_lookup.get_mut(&room_id) {
-            eprintln!("[{}] Removing user {}", room_id, my_id);
-            room.players.remove(&my_id);
+            if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
+                room.players.remove(pos);
+            }
 
             // If room is empty, delete room
             if room.players.len() == 0 {
@@ -129,29 +141,29 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 rooms_lookup.remove(&room_id);
             }
         }
+        eprintln!("[{}] Removed user {}", room_id, login.user);
     }
+
+    // Broadcast disconnect after removing user - don't want
+    // to send to a dead socket
+    sync_room(&rooms, room_id).await;
 }
 
-async fn user_message(room_id: usize, my_id: usize, my_name: &String, msg: Message, rooms: &GlobalRooms) {
-    // Skip any non-Text messages...
-    let msg = if let Ok(s) = msg.to_str() {
-        s
-    } else {
-        return;
-    };
-
-    let new_msg = format!("[{}] <{}> {}", room_id, my_name, msg);
-    let room_id = 0;
+async fn sync_room(rooms: &GlobalRooms, room_id: usize) {
+    println!("[{}] Syncing", room_id);
     if let Some(room) = rooms.read().await.get(&room_id) {
-        // New message from this user, send it to everyone else (except same uid)...
-        for (&uid, player) in room.players.iter() {
-            if my_id != uid {
-                if let Err(_disconnected) = player.conn.send(Ok(Message::text(new_msg.clone()))) {
+        // Something happened. Serialize the current room state and
+        // broadcast it to everybody in the room.
+        let msg = Message::text(serde_json::to_string(room).unwrap());
+        for player in room.players.iter() {
+            if let Some(conn) = &player.conn {
+                if let Err(_disconnected) = conn.send(Ok(msg.clone())) {
                     // The tx is disconnected, our `user_disconnected` code
                     // should be happening in another task, nothing more to
                     // do here.
-                }
+                }    
             }
         }
     }
+    println!("[{}] Synced", room_id);
 }

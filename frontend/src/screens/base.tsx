@@ -6,7 +6,7 @@ export const Screen = (
 ) => (
     <main>
         <header>
-            <h1 onclick={function(state) {console.log(state); return state;}}>{header}</h1>
+            <h1 onclick={function(state: State) {console.log(state); return state;}}>{header}</h1>
         </header>
         <article>
             {children}

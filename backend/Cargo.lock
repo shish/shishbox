@@ -1110,6 +1110,7 @@ dependencies = [
  "parking_lot",
  "pretty_env_logger",
  "serde",
+ "serde_json",
  "tokio",
  "warp",
 ]

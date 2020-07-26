@@ -9,28 +9,35 @@ type Player = {
     name: string,
 }
 
-type Stack = {
-
+type Room = {
+    game: string,
+    lobby: boolean,
+    players: Array<Player>,
 }
 
-type WdGameState = {
+type WdRoom = Room & {
     stacks: Array<Array<string>>,
-    tmp_text_input: "",
-    tmp_draw_last: Array<number>,
+    tick: number,
+}
+
+type Message = {
+    user: string,
+    message: string,
+}
+
+type ChatRoom = Room & {
+    messages: Array<Message>,
 }
 
 type State = {
-    user: {
-        name: string,
-        color: string,
+    conn: {
+        user: string,
+        room: string,
+        sess: string,
     }
-    room: {
-        id: string,
-        game: string,
-        tick: number,
-        players: Array<Player>,
-    },
-    wd: WdGameState,
+    room: WdRoom | ChatRoom,
+    tmp_text_input: string,
+    tmp_draw_last: Array<number>,
     ws_errors: number,
-    loading: boolean,
+    loading: string,
 }
