@@ -1,16 +1,16 @@
 /// <reference path='./shishbox.d.ts'/>
-import {app, h} from "hyperapp";
-import {WebSocketListen} from "hyperapp-fx";
-import {Screen} from "./screens/base";
-import {Login} from "./screens/login";
-import {Lobby} from "./screens/lobby";
-import {WriteyDrawey, username} from "./screens/wd";
-import { v4 as uuidv4 } from 'uuid';
+import { app, h } from "hyperapp";
+import { WebSocketListen } from "hyperapp-fx";
+import { Screen } from "./screens/base";
+import { Login } from "./screens/login";
+import { Lobby } from "./screens/lobby";
+import { WriteyDrawey, username } from "./screens/wd";
+import { v4 as uuidv4 } from "uuid";
 
-let sess = sessionStorage.getItem('sess');
-if(!sess) {
+let sess = sessionStorage.getItem("sess");
+if (!sess) {
     sess = uuidv4();
-    sessionStorage.setItem('sess', sess);
+    sessionStorage.setItem("sess", sess);
 }
 
 let state: State = {
@@ -28,29 +28,51 @@ let state: State = {
 
 function view(state: State) {
     if (state.conn.room === null) {
-        return <body><Login state={state}/></body>;
-    }
-    else if (state.loading !== null) {
-        return <body><Screen header={"Loading"} footer={""}>{state.loading}</Screen></body>;
-    }
-    else if (state.room.lobby) {
-        return <body><Lobby state={state}/></body>;
-    }
-    else {
-        return <body><WriteyDrawey state={state}/></body>;
+        return (
+            <body>
+                <Login state={state} />
+            </body>
+        );
+    } else if (state.loading !== null) {
+        return (
+            <body>
+                <Screen header={"Loading"} footer={""}>
+                    {state.loading}
+                </Screen>
+            </body>
+        );
+    } else if (state.room.lobby) {
+        return (
+            <body>
+                <Lobby state={state} />
+            </body>
+        );
+    } else {
+        return (
+            <body>
+                <WriteyDrawey state={state} />
+            </body>
+        );
     }
 }
 
 let mySubs = {};
 
 export function socket_name(state: State): string {
-    return (window.location.protocol == "https:" ? "wss:" : "ws:") +
-        "//" + window.location.host +
+    return (
+        (window.location.protocol == "https:" ? "wss:" : "ws:") +
+        "//" +
+        window.location.host +
         "/room" +
-        "?room=" + state.conn.room +
-        "&user=" + state.conn.user +
-        "&sess=" + state.conn.sess +
-        "&_=" + state.ws_errors;
+        "?room=" +
+        state.conn.room +
+        "&user=" +
+        state.conn.user +
+        "&sess=" +
+        state.conn.sess +
+        "&_=" +
+        state.ws_errors
+    );
 }
 
 function getOpenWebSocketListener(state: State): WebSocketListen {
@@ -63,14 +85,22 @@ function getOpenWebSocketListener(state: State): WebSocketListen {
             },
             close(state: State): State {
                 delete mySubs[url];
-                return { ...state, ws_errors: state.ws_errors + 1, loading: "Reconnecting..." };
+                return {
+                    ...state,
+                    ws_errors: state.ws_errors + 1,
+                    loading: "Reconnecting...",
+                };
             },
             action(state: State, msg: MessageEvent): State {
                 return { ...state, loading: null, room: JSON.parse(msg.data) };
             },
             error(state: State, error: Event): State {
                 console.log("Error listening to websocket:", error);
-                return { ...state, ws_errors: state.ws_errors + 1, loading: "Reconnecting..." };
+                return {
+                    ...state,
+                    ws_errors: state.ws_errors + 1,
+                    loading: "Reconnecting...",
+                };
             },
         });
     }
@@ -85,5 +115,5 @@ app({
     init: state,
     view: view,
     subscriptions: subscriptions,
-    node: document.body
+    node: document.body,
 });

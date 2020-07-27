@@ -1,9 +1,8 @@
-import {h} from "hyperapp";
-import {WebSocketSend} from "hyperapp-fx";
+import { h } from "hyperapp";
+import { WebSocketSend } from "hyperapp-fx";
 import Sentence from "sentence-engine";
-import {Screen} from "./base";
-import {socket_name} from "../shishbox";
-
+import { Screen } from "./base";
+import { socket_name } from "../shishbox";
 
 /* ====================================================================
 = Example sentences
@@ -33,17 +32,51 @@ const templates = [
 ];
 let vocabulary = {
     race: ["robot", "elf", "alien", "skeleton", "dragon", "ghost"],
-    job: ["chef", "wizard", "ninja", "pirate", "fairy", "clown", "hacker", "superhero", "angel", "demon", "astronaut"],
-    animal: ["frog", "sheep", "cat", "monkey", "worm", "unicorn", "bird", "turtle", "bat", "octopus"],
+    job: [
+        "chef",
+        "wizard",
+        "ninja",
+        "pirate",
+        "fairy",
+        "clown",
+        "hacker",
+        "superhero",
+        "angel",
+        "demon",
+        "astronaut",
+    ],
+    animal: [
+        "frog",
+        "sheep",
+        "cat",
+        "monkey",
+        "worm",
+        "unicorn",
+        "bird",
+        "turtle",
+        "bat",
+        "octopus",
+    ],
     role: ["king", "queen", "prince", "princess"],
-    food: ["cake", "pie", "banana", "carrot", "pumpkin", "pear", "cheese", "flower"],
+    food: [
+        "cake",
+        "pie",
+        "banana",
+        "carrot",
+        "pumpkin",
+        "pear",
+        "cheese",
+        "flower",
+    ],
     event: ["birthday party", "job interview"],
     building: ["hotel", "house", "bank", "hospital", "spaceship"],
     weather: ["cloud", "rainbow"],
     car: ["car", "truck", "bus", "golf cart", "monster truck"],
-}
-vocabulary["people"] = vocabulary["race"].concat(vocabulary["animal"])
-const suggestions = shuffleArray(templates.map((t) => Sentence(t, vocabulary).get())).splice(0, 5);
+};
+vocabulary["people"] = vocabulary["race"].concat(vocabulary["animal"]);
+const suggestions = shuffleArray(
+    templates.map(t => Sentence(t, vocabulary).get()),
+).splice(0, 5);
 export const username = Sentence("{race} {job}", vocabulary).get();
 
 /* ====================================================================
@@ -53,39 +86,63 @@ export const username = Sentence("{race} {job}", vocabulary).get();
 function SubmitText(state: State) {
     let wd = state.room as WdRoom;
     let text = state.tmp_text_input;
-    if(text == "") {
+    if (text == "") {
         console.log("Not submitting an empty text");
         return state;
     }
 
-    console.log("SubmitText("+text+")");
+    console.log("SubmitText(" + text + ")");
 
     let new_state: State = {
         ...state,
         room: wd,
         tmp_text_input: "",
     };
-    return [new_state, WebSocketSend({url: socket_name(state), data: JSON.stringify({
-        cmd: "submit",
-        data: text
-      })})];
+    return [
+        new_state,
+        WebSocketSend({
+            url: socket_name(state),
+            data: JSON.stringify({
+                cmd: "submit",
+                data: text,
+            }),
+        }),
+    ];
 }
 
-const InitInput = ({stack, suggestion}: { stack: Array<string>; suggestion: string }) => (
-    <Screen 
+const InitInput = ({
+    stack,
+    suggestion,
+}: {
+    stack: Array<string>;
+    suggestion: string;
+}) => (
+    <Screen
         header={"Write an insipring sentence"}
-        footer={<input type="button" onclick={SubmitText} value={"Submit Sentence"} />}
+        footer={
+            <input
+                type="button"
+                onclick={SubmitText}
+                value={"Submit Sentence"}
+            />
+        }
     >
         <div class={"inputBlock"}>
             <p>For example:</p>
-            {suggestions.map((x) =>
-                <p onclick={(state: State) => ({
-                    ...state,
-                    tmp_text_input: x,
-                } as State)}>"{x}"</p>
-            )}
+            {suggestions.map(x => (
+                <p
+                    onclick={(state: State) =>
+                        ({
+                            ...state,
+                            tmp_text_input: x,
+                        } as State)
+                    }
+                >
+                    "{x}"
+                </p>
+            ))}
         </div>
-        <input 
+        <input
             type={"text"}
             value={suggestion}
             placeholder={"Be imaginative!"}
@@ -99,13 +156,19 @@ const InitInput = ({stack, suggestion}: { stack: Array<string>; suggestion: stri
     </Screen>
 );
 
-const TextInput = ({stack}: { stack: Array<string> }) => (
+const TextInput = ({ stack }: { stack: Array<string> }) => (
     <Screen
         header={"Describe this"}
-        footer={<input type="button" onclick={SubmitText} value={"Submit Sentence"} />}
+        footer={
+            <input
+                type="button"
+                onclick={SubmitText}
+                value={"Submit Sentence"}
+            />
+        }
     >
         <div class={"inputBlock"}>
-            <img src={stack[stack.length-1]} />
+            <img src={stack[stack.length - 1]} />
         </div>
         <input
             type={"text"}
@@ -119,7 +182,6 @@ const TextInput = ({stack}: { stack: Array<string> }) => (
     </Screen>
 );
 
-
 /* ====================================================================
 = Draw Input Screen
 ==================================================================== */
@@ -128,16 +190,28 @@ function SubmitDraw(state: State) {
     let wd = state.room as WdRoom;
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     console.log("SubmitDraw()");
-    return [state, WebSocketSend({url: socket_name(state), data: JSON.stringify({
-        cmd: "submit",
-        data: canvas.toDataURL()
-      })})];
+    return [
+        state,
+        WebSocketSend({
+            url: socket_name(state),
+            data: JSON.stringify({
+                cmd: "submit",
+                data: canvas.toDataURL(),
+            }),
+        }),
+    ];
 }
 
-const DrawInput = ({stack}: { stack: Array<string> }) => (
+const DrawInput = ({ stack }: { stack: Array<string> }) => (
     <Screen
-        header={<span>Draw "{stack[stack.length-1]}"</span>}
-        footer={<input type="button" onclick={SubmitDraw} value={"Submit Drawing"} />}
+        header={<span>Draw "{stack[stack.length - 1]}"</span>}
+        footer={
+            <input
+                type="button"
+                onclick={SubmitDraw}
+                value={"Submit Drawing"}
+            />
+        }
     >
         <div class={"inputBlock"}>
             <p>&nbsp;</p>
@@ -150,43 +224,45 @@ const DrawInput = ({stack}: { stack: Array<string> }) => (
                 onmousedown={DrawMove}
                 onmousemove={DrawMove}
             />
-            <p><a onclick={DrawClear}>Clear</a></p>
+            <p>
+                <a onclick={DrawClear}>Clear</a>
+            </p>
         </div>
     </Screen>
 );
 
-function DrawMove(state: State, e: MouseEvent|TouchEvent): State {
+function DrawMove(state: State, e: MouseEvent | TouchEvent): State {
     e.preventDefault();
 
     var rect = (e.target as Element).getBoundingClientRect();
     let drawing = true;
 
-    let x=0, y=0;
-    if(e.type == "touchstart" || e.type == "touchmove") {
+    let x = 0,
+        y = 0;
+    if (e.type == "touchstart" || e.type == "touchmove") {
         let te = e as TouchEvent;
         x = te.changedTouches[0].clientX - rect.left;
         y = te.changedTouches[0].clientY - rect.top;
-    }
-    else {
+    } else {
         let me = e as MouseEvent;
         x = me.clientX - rect.left;
         y = me.clientY - rect.top;
         drawing = false; // when should drawing be true??
     }
 
-    if(drawing) {
+    if (drawing) {
         let canvas = document.getElementById("canvas") as HTMLCanvasElement;
         let context = canvas.getContext("2d");
         context.strokeStyle = "#000";
         context.lineJoin = "round";
         context.lineWidth = 6;
-    
+
         context.beginPath();
-        if(e.type == "mousemove" || e.type == "touchmove") {
+        if (e.type == "mousemove" || e.type == "touchmove") {
             context.moveTo(state.tmp_draw_last[0], state.tmp_draw_last[1]);
-        }
-        else { // mousedown / touchstart
-            context.moveTo(x-1, y-1);
+        } else {
+            // mousedown / touchstart
+            context.moveTo(x - 1, y - 1);
         }
         context.lineTo(x, y);
         context.closePath();
@@ -203,16 +279,17 @@ function DrawClear(state: State): State {
     return state;
 }
 
-
 /* ====================================================================
 = Overall states
 ==================================================================== */
 
-export function WriteyDrawey({state}: { state: State }) {
+export function WriteyDrawey({ state }: { state: State }) {
     let wd = state.room as WdRoom;
-    return wd.stacks[0].length == 0 ?
-        <InitInput suggestion={state.tmp_text_input} stack={wd.stacks[0]} /> :
-        wd.stacks[0].length % 2 == 0 ?
-            <TextInput stack={wd.stacks[0]} /> :
-            <DrawInput stack={wd.stacks[0]} /> ;
+    return wd.stacks[0].length == 0 ? (
+        <InitInput suggestion={state.tmp_text_input} stack={wd.stacks[0]} />
+    ) : wd.stacks[0].length % 2 == 0 ? (
+        <TextInput stack={wd.stacks[0]} />
+    ) : (
+        <DrawInput stack={wd.stacks[0]} />
+    );
 }

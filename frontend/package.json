@@ -9,13 +9,15 @@
     "scripts": {
         "build": "parcel build --public-url . src/index.html --experimental-scope-hoisting",
         "watch": "parcel watch --public-url . src/index.html",
-        "serve": "parcel serve --port 1238 src/index.html"
+        "serve": "parcel serve --port 1238 src/index.html",
+        "format": "prettier --write 'src/**/*.tsx' --tab-width 4 --trailing-comma all"
     },
     "repository": "https://github.com/shish/shishbox/",
     "license": "GPL-3.0-only",
     "devDependencies": {
         "node-sass": "^4.12.0",
         "parcel-bundler": "^1.12.4",
+        "prettier": "^1.19.1",
         "typescript": "^3.8.3"
     }
 }

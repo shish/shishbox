@@ -1,5 +1,5 @@
-import {h} from "hyperapp";
-import {Screen} from "./base";
+import { h } from "hyperapp";
+import { Screen } from "./base";
 
 function LoginAction(state: State): State {
     let user = (document.getElementById("user") as HTMLFormElement).value;
@@ -25,16 +25,27 @@ const About = () => (
         </h2>
         <p className={"donate"}>
             If you like this app and find it fun,
-            <br/>feel free to donate
-            via <a href={"https://paypal.me/shish2k"}>PayPal</a>
+            <br />
+            feel free to donate via{" "}
+            <a href={"https://paypal.me/shish2k"}>PayPal</a>
         </p>
     </div>
 );
 
-export const Login = ({state}: { state: State }) => (
-    <Screen header={"Join a Game"} footer={<About/>}>
-        <input type="text" id="room" placeholder="Enter Room Code" value="12345" />
-        <input type="text" id="user" placeholder="Enter Your Name" value="Shish" />
+export const Login = ({ state }: { state: State }) => (
+    <Screen header={"Join a Game"} footer={<About />}>
+        <input
+            type="text"
+            id="room"
+            placeholder="Enter Room Code"
+            value="12345"
+        />
+        <input
+            type="text"
+            id="user"
+            placeholder="Enter Your Name"
+            value="Shish"
+        />
         <input type="button" value="Play" onclick={LoginAction} />
     </Screen>
 );
