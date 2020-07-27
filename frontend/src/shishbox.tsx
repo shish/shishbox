@@ -4,7 +4,7 @@ import {WebSocketListen} from "hyperapp-fx";
 import {Screen} from "./screens/base";
 import {Login} from "./screens/login";
 import {Lobby} from "./screens/lobby";
-import {WriteyDrawey} from "./screens/wd";
+import {WriteyDrawey, username} from "./screens/wd";
 import { v4 as uuidv4 } from 'uuid';
 
 let sess = sessionStorage.getItem('sess');
@@ -13,11 +13,9 @@ if(!sess) {
     sessionStorage.setItem('sess', sess);
 }
 
-// Get saved data from sessionStorage
-
 let state: State = {
     conn: {
-        user: "Shish",
+        user: username,
         room: "12345",
         sess: sess,
     },
@@ -58,19 +56,16 @@ export function socket_name(state: State): string {
 function getOpenWebSocketListener(state: State): WebSocketListen {
     let url = socket_name(state);
     if (!mySubs[url]) {
-        console.log("New socket:", url);
         mySubs[url] = WebSocketListen({
             url: url,
             open(state: State): State {
                 return { ...state, loading: "Syncing..." };
             },
             close(state: State): State {
-                console.log("Socket closed")
                 delete mySubs[url];
                 return { ...state, ws_errors: state.ws_errors + 1, loading: "Reconnecting..." };
             },
             action(state: State, msg: MessageEvent): State {
-                console.log("ws.action(", msg.data, ")");
                 return { ...state, loading: null, room: JSON.parse(msg.data) };
             },
             error(state: State, error: Event): State {

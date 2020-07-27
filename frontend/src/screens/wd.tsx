@@ -44,7 +44,7 @@ let vocabulary = {
 }
 vocabulary["people"] = vocabulary["race"].concat(vocabulary["animal"])
 const suggestions = shuffleArray(templates.map((t) => Sentence(t, vocabulary).get())).splice(0, 5);
-
+export const username = Sentence("{race} {job}", vocabulary).get();
 
 /* ====================================================================
 = Text Input Screen
@@ -59,15 +59,16 @@ function SubmitText(state: State) {
     }
 
     console.log("SubmitText("+text+")");
-    wd.stacks[0].push(text);
-    wd.tick = wd.tick + 1;
 
     let new_state: State = {
         ...state,
         room: wd,
         tmp_text_input: "",
     };
-    return [new_state, WebSocketSend({url: socket_name(state), data: text})];
+    return [new_state, WebSocketSend({url: socket_name(state), data: JSON.stringify({
+        cmd: "submit",
+        data: text
+      })})];
 }
 
 const InitInput = ({stack, suggestion}: { stack: Array<string>; suggestion: string }) => (
@@ -123,13 +124,14 @@ const TextInput = ({stack}: { stack: Array<string> }) => (
 = Draw Input Screen
 ==================================================================== */
 
-function SubmitDraw(state: State): State {
+function SubmitDraw(state: State) {
     let wd = state.room as WdRoom;
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     console.log("SubmitDraw()");
-    wd.stacks[0].push(canvas.toDataURL());
-    wd.tick = wd.tick + 1;
-    return { ...state, room: wd }
+    return [state, WebSocketSend({url: socket_name(state), data: JSON.stringify({
+        cmd: "submit",
+        data: canvas.toDataURL()
+      })})];
 }
 
 const DrawInput = ({stack}: { stack: Array<string> }) => (

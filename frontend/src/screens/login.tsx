@@ -8,6 +8,7 @@ function LoginAction(state: State): State {
     return {
         ...state,
         conn: {
+            ...state.conn,
             user: user,
             room: room,
         },

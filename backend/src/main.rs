@@ -8,10 +8,13 @@ use tokio::sync::{mpsc, RwLock};
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
 
+#[macro_use] extern crate log;
+
 /// Our state of currently connected users.
 #[derive(Serialize, Deserialize)]
 struct Player {
     name: String,
+    #[serde(skip)]
     sess: String,
     #[serde(skip)]
     conn: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>> // Message
@@ -34,6 +37,12 @@ struct RoomLogin {
     room: String,
     user: String,
     sess: String,
+}
+
+#[derive(Deserialize)]
+struct Command {
+    cmd: String,
+    data: String,
 }
 
 #[tokio::main]
@@ -62,7 +71,7 @@ async fn main() {
 
     let routes = files.or(room);
 
-    println!("Serving at localhost:1239");
+    info!("Serving at localhost:1239");
     warp::serve(routes).run(([127, 0, 0, 1], 1239)).await;
 }
 
@@ -78,7 +87,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     let (tx, rx) = mpsc::unbounded_channel();
     tokio::task::spawn(rx.forward(user_ws_tx).map(|result| {
         if let Err(e) = result {
-            eprintln!("websocket send error: {}", e);
+            error!("websocket send error: {}", e);
         }
     }));
 
@@ -87,24 +96,32 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         let mut rooms_lookup = rooms.write().await;
         let room = match rooms_lookup.entry(room_id) {
             Vacant(entry) => {
-                eprintln!(
+                info!(
                     "[{}] First user {} ({}) creates room ({})",
                     room_id, login.user, login.sess, login.room
                 );
-                entry.insert(Room::default())
+                let mut new_room = Room::default();
+                new_room.game = "wd".into();
+                new_room.lobby = true;
+                entry.insert(new_room)
             }
             Occupied(entry) => {
-                eprintln!(
+                info!(
                     "[{}] Adding user {} ({}) into room",
                     room_id, login.user, login.sess
                 );
                 entry.into_mut()
             }
         };
-        room.game = "wd".into();
+        if !room.lobby {
+            return;  // spectators?
+        }
         room.stacks.push(vec![]);
-        room.lobby = true;
-        room.players.push(Player{name: login.user.clone(), sess: login.sess.clone(), conn: Some(tx)});
+        room.players.push(Player{
+            name: login.user.clone(),
+            sess: login.sess.clone(),
+            conn: Some(tx),
+        });
     }
 
     // Broadcast join after adding user to room, so that as
@@ -116,17 +133,31 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
-                eprintln!("websocket error(user={}): {}", login.user, e);
+                error!("websocket error(user={}): {}", login.user, e);
                 break;
             }
         };
-        eprintln!("Got msg: {:?}", msg);
+        if msg.is_text() {
+            let data = msg.to_str().unwrap();
+            info!("Got msg: {:?}", data);
+            let cmd: Command = serde_json::from_str(data).unwrap();
+            match cmd.cmd.as_str() {
+                "start" => {
+                    if let Some(room) = rooms.write().await.get_mut(&room_id) {
+                        room.lobby = false;
+                    }
+                },
+                _ => {
+                    error!("[{}] Unrecognised message from {}: {}", room_id, login.user, data);
+                },
+            }
+        }
         sync_room(&rooms, room_id).await;
     }
 
     // After we finish reading from the websocket (ie, it's closed), clean up
     {
-        eprintln!("[{}] Removing user {} ({})", room_id, login.user, login.sess);
+        info!("[{}] Removing user {} ({})", room_id, login.user, login.sess);
         let mut rooms_lookup = rooms.write().await;
 
         // Stream closed up, so remove from the user list
@@ -137,11 +168,11 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
 
             // If room is empty, delete room
             if room.players.len() == 0 {
-                eprintln!("[{}] Room is empty, cleaning it up", room_id);
+                info!("[{}] Room is empty, cleaning it up", room_id);
                 rooms_lookup.remove(&room_id);
             }
         }
-        eprintln!("[{}] Removed user {}", room_id, login.user);
+        debug!("[{}] Removed user {}", room_id, login.user);
     }
 
     // Broadcast disconnect after removing user - don't want
@@ -150,7 +181,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
 }
 
 async fn sync_room(rooms: &GlobalRooms, room_id: usize) {
-    println!("[{}] Syncing", room_id);
+    debug!("[{}] Syncing", room_id);
     if let Some(room) = rooms.read().await.get(&room_id) {
         // Something happened. Serialize the current room state and
         // broadcast it to everybody in the room.
@@ -165,5 +196,5 @@ async fn sync_room(rooms: &GlobalRooms, room_id: usize) {
             }
         }
     }
-    println!("[{}] Synced", room_id);
+    debug!("[{}] Synced", room_id);
 }

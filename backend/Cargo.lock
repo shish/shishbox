@@ -1107,6 +1107,7 @@ name = "shishbox-be"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "log 0.4.8",
  "parking_lot",
  "pretty_env_logger",
  "serde",
