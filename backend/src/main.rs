@@ -3,12 +3,13 @@ use futures::{FutureExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::sync::{Arc};
+use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 /// Our state of currently connected users.
 #[derive(Serialize, Deserialize)]
@@ -17,17 +18,30 @@ struct Player {
     #[serde(skip)]
     sess: String,
     #[serde(skip)]
-    conn: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>> // Message
+    conn: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>, // Message
 }
 
-#[derive(Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Phase {
+    Lobby,
+    Game,
+    GameOver,
+}
+
+impl Default for Phase {
+    fn default() -> Self {
+        Phase::Lobby
+    }
+}
+
+#[derive(Serialize, Deserialize, Default)]
 struct Room {
     game: String,
-    lobby: bool,
+    phase: Phase,
     players: Vec<Player>,
     stacks: Vec<Vec<String>>,
-    tick: u32,
+    tick: usize,
 }
 type Rooms = HashMap<usize, Room>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
@@ -39,7 +53,7 @@ struct RoomLogin {
     sess: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct Command {
     cmd: String,
     data: String,
@@ -102,7 +116,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 );
                 let mut new_room = Room::default();
                 new_room.game = "wd".into();
-                new_room.lobby = true;
+                new_room.phase = Phase::Lobby;
                 entry.insert(new_room)
             }
             Occupied(entry) => {
@@ -113,11 +127,12 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 entry.into_mut()
             }
         };
-        if !room.lobby {
-            return;  // spectators?
+        if room.phase != Phase::Lobby {
+            // FIXME: send {error: "Game in progress"}
+            return; // spectators?
         }
         room.stacks.push(vec![]);
-        room.players.push(Player{
+        room.players.push(Player {
             name: login.user.clone(),
             sess: login.sess.clone(),
             conn: Some(tx),
@@ -139,17 +154,35 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         };
         if msg.is_text() {
             let data = msg.to_str().unwrap();
-            info!("Got msg: {:?}", data);
+            debug!("Got msg: {:?}", data);
             let cmd: Command = serde_json::from_str(data).unwrap();
             match cmd.cmd.as_str() {
                 "start" => {
                     if let Some(room) = rooms.write().await.get_mut(&room_id) {
-                        room.lobby = false;
+                        room.phase = Phase::Game;
                     }
-                },
+                }
+                "submit" => {
+                    if let Some(room) = rooms.write().await.get_mut(&room_id) {
+                        if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
+                            let players = room.stacks.len();
+                            let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                            let my_stack = (pos + round) % players;
+                            room.stacks[my_stack].push(cmd.data);
+
+                            let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                            if round == players {
+                                room.phase = Phase::GameOver;
+                            }
+                        }
+                    }
+                }
                 _ => {
-                    error!("[{}] Unrecognised message from {}: {}", room_id, login.user, data);
-                },
+                    error!(
+                        "[{}] Unrecognised message from {}: {}",
+                        room_id, login.user, data
+                    );
+                }
             }
         }
         sync_room(&rooms, room_id).await;
@@ -157,13 +190,17 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
 
     // After we finish reading from the websocket (ie, it's closed), clean up
     {
-        info!("[{}] Removing user {} ({})", room_id, login.user, login.sess);
+        info!(
+            "[{}] Removing user {} ({})",
+            room_id, login.user, login.sess
+        );
         let mut rooms_lookup = rooms.write().await;
 
         // Stream closed up, so remove from the user list
         if let Some(room) = rooms_lookup.get_mut(&room_id) {
             if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
                 room.players.remove(pos);
+                room.stacks.remove(pos);
             }
 
             // If room is empty, delete room
@@ -175,9 +212,14 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         debug!("[{}] Removed user {}", room_id, login.user);
     }
 
-    // Broadcast disconnect after removing user - don't want
-    // to send to a dead socket
-    sync_room(&rooms, room_id).await;
+    // If the game is in progress, let everybody know about the user
+    // disconnecting. If we're in the GameOver screen, then don't
+    // broadcast any changes so that we don't disrupt the scores screen.
+    if let Some(room) = rooms.read().await.get(&room_id) {
+        if room.phase != Phase::GameOver {
+            sync_room(&rooms, room_id).await;
+        }
+    }
 }
 
 async fn sync_room(rooms: &GlobalRooms, room_id: usize) {
@@ -192,7 +234,7 @@ async fn sync_room(rooms: &GlobalRooms, room_id: usize) {
                     // The tx is disconnected, our `user_disconnected` code
                     // should be happening in another task, nothing more to
                     // do here.
-                }    
+                }
             }
         }
     }

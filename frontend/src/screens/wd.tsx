@@ -247,7 +247,7 @@ function DrawMove(state: State, e: MouseEvent | TouchEvent): State {
         let me = e as MouseEvent;
         x = me.clientX - rect.left;
         y = me.clientY - rect.top;
-        drawing = false; // when should drawing be true??
+        drawing = me.buttons == 1;
     }
 
     if (drawing) {
@@ -280,16 +280,82 @@ function DrawClear(state: State): State {
 }
 
 /* ====================================================================
+= Game Over screen
+==================================================================== */
+
+const GameOver = ({ state }: { state: State }) => (
+    <Screen
+        header={"Game Finished"}
+        footer={<input type="button" value="Leave" onclick={LeaveAction} />}
+    >
+        {(state.room as WdRoom).stacks.map((s, p) => (
+            <div class={"inputBlock"}>
+                <p>{state.room.players[p].name}'s idea:</p>
+                <div class="summary">
+                    {s.map((v, i) =>
+                        i % 2 == 0 ? (
+                            <p>
+                                <span>{v}</span>
+                            </p>
+                        ) : (
+                            <img src={v} />
+                        ),
+                    )}
+                </div>
+            </div>
+        ))}
+    </Screen>
+);
+
+/* ====================================================================
 = Overall states
 ==================================================================== */
 
+function myIndex(state: State): number {
+    for (let i = 0; i < state.room.players.length; i++) {
+        if (state.room.players[i].name == state.conn.user) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+const LeaveAction = (state: State) => ({
+    ...state,
+    conn: { ...state.conn, room: null },
+});
+
 export function WriteyDrawey({ state }: { state: State }) {
     let wd = state.room as WdRoom;
-    return wd.stacks[0].length == 0 ? (
-        <InitInput suggestion={state.tmp_text_input} stack={wd.stacks[0]} />
-    ) : wd.stacks[0].length % 2 == 0 ? (
-        <TextInput stack={wd.stacks[0]} />
+    let round = Math.min(...wd.stacks.map(s => s.length));
+    let my_stack = (myIndex(state) + round) % state.room.players.length;
+    let stack = wd.stacks[my_stack];
+
+    let finished = round >= wd.stacks.length;
+    let waiting = [];
+    for (let i = 0; i < wd.stacks.length; i++) {
+        if (wd.stacks[i].length < stack.length) {
+            // TODO: map unfinished stack to player
+            waiting.push(true);
+        }
+    }
+
+    return finished ? (
+        <GameOver state={state} />
+    ) : waiting.length > 0 ? (
+        <Screen header={"Waiting"} footer={""}>
+            <div class={"inputBlock"}>
+                <p>
+                    Waiting for {waiting.length} other player
+                    {waiting.length > 1 && "s"}...
+                </p>
+            </div>
+        </Screen>
+    ) : stack.length == 0 ? (
+        <InitInput suggestion={state.tmp_text_input} stack={stack} />
+    ) : stack.length % 2 == 0 ? (
+        <TextInput stack={stack} />
     ) : (
-        <DrawInput stack={wd.stacks[0]} />
+        <DrawInput stack={stack} />
     );
 }

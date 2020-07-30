@@ -68,3 +68,28 @@ INPUT[type="text"], INPUT[type="button"] {
   border-radius: 0.5rem;
   margin: 1rem auto;
 }
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-bottom: 1em;
+  P, IMG {
+    flex: 0 0 auto;
+    border: 1px solid #8C8;
+    display: inline-block;
+    width: 40vw;
+    height: 40vw;
+    border-radius: 0.5rem;  
+    margin: 0 0 0.5rem 0.5rem;
+  }
+  P {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    SPAN {
+      flex: 0 0 auto;
+      font-size: 2em;
+    }
+  }
+}

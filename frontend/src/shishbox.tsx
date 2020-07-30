@@ -24,36 +24,25 @@ let state: State = {
     ws_errors: 0,
     tmp_draw_last: [],
     tmp_text_input: "",
+    // room: {"game":"wd","phase":"gameover","players":[{"name":username},{"name":"alien wizard"}],"stacks":[["a cloud over a house","data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR4nO3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAABPO1TCQAAAABJRU5ErkJggg=="],["a dragon dancing with an alien","data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR4nO3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAABPO1TCQAAAABJRU5ErkJggg=="]],"tick":0}
 };
 
 function view(state: State) {
+    let screen = null;
     if (state.conn.room === null) {
-        return (
-            <body>
-                <Login state={state} />
-            </body>
-        );
+        screen = <Login state={state} />;
     } else if (state.loading !== null) {
-        return (
-            <body>
-                <Screen header={"Loading"} footer={""}>
-                    {state.loading}
-                </Screen>
-            </body>
+        screen = (
+            <Screen header={"Loading"} footer={""}>
+                {state.loading}
+            </Screen>
         );
-    } else if (state.room.lobby) {
-        return (
-            <body>
-                <Lobby state={state} />
-            </body>
-        );
+    } else if (state.room.phase == "lobby") {
+        screen = <Lobby state={state} />;
     } else {
-        return (
-            <body>
-                <WriteyDrawey state={state} />
-            </body>
-        );
+        screen = <WriteyDrawey state={state} />;
     }
+    return <body>{screen}</body>;
 }
 
 let mySubs = {};

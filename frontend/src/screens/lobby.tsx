@@ -4,11 +4,12 @@ import { Screen } from "./base";
 import { socket_name } from "../shishbox";
 
 const StartAction = (state: State) => [
-    { ...state, room: { ...state.room, lobby: false } } as State,
+    { ...state, loading: "Starting game..." } as State,
     WebSocketSend({
         url: socket_name(state),
         data: JSON.stringify({
             cmd: "start",
+            data: "",
         }),
     }),
 ];

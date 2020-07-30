@@ -11,13 +11,12 @@ type Player = {
 
 type Room = {
     game: string,
-    lobby: boolean,
+    phase: string,
     players: Array<Player>,
 }
 
 type WdRoom = Room & {
     stacks: Array<Array<string>>,
-    tick: number,
 }
 
 type Message = {
