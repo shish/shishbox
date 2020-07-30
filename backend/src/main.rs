@@ -42,7 +42,7 @@ struct Room {
     stacks: Vec<Vec<String>>,
     tick: usize,
 }
-type Rooms = HashMap<usize, Room>;
+type Rooms = HashMap<String, Room>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
 
 #[derive(Deserialize)]
@@ -97,29 +97,27 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         }
     }));
 
-    let room_id = 0;
-
     // Make sure a room exists
     {
         let mut rooms_lookup = rooms.write().await;
-        if rooms_lookup.get(&room_id).is_none() {
-            info!("[{}] Creating room", room_id);
+        if rooms_lookup.get(&login.room).is_none() {
+            info!("[{}] Creating room", login.room);
             let mut new_room = Room::default();
             new_room.game = "wd".into();
             new_room.phase = Phase::Lobby;
-            rooms_lookup.insert(room_id, new_room);
+            rooms_lookup.insert(login.room.clone(), new_room);
         }
     }
 
     // Save the sender in our list of connected users.
-    if let Some(room) = rooms.write().await.get_mut(&room_id) {
+    if let Some(room) = rooms.write().await.get_mut(&login.room) {
         if room.phase != Phase::Lobby {
             // FIXME: send {error: "Game in progress"}
             return; // spectators?
         }
         info!(
             "[{}] Adding user {} ({}) into room",
-            room_id, login.user, login.sess
+            login.room, login.user, login.sess
         );
         room.stacks.push(vec![]);
         room.players.push(Player {
@@ -141,13 +139,13 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         };
         match cmd.cmd.as_str() {
             "start" => {
-                if let Some(room) = rooms.write().await.get_mut(&room_id) {
+                if let Some(room) = rooms.write().await.get_mut(&login.room) {
                     room.phase = Phase::Game;
                     sync_room(&room).await;
                 }
             }
             "submit" => {
-                if let Some(room) = rooms.write().await.get_mut(&room_id) {
+                if let Some(room) = rooms.write().await.get_mut(&login.room) {
                     if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
                         let players = room.stacks.len();
                         let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
@@ -165,7 +163,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
             _ => {
                 error!(
                     "[{}] Unrecognised message from {}: {:?}",
-                    room_id, login.user, cmd
+                    login.room, login.user, cmd
                 );
             }
         }
@@ -174,11 +172,11 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     // After we finish reading from the websocket (ie, it's closed), clean up
     info!(
         "[{}] Removing user {} ({})",
-        room_id, login.user, login.sess
+        login.room, login.user, login.sess
     );
     {
         let mut rooms_lookup = rooms.write().await;
-        if let Some(room) = rooms_lookup.get_mut(&room_id) {
+        if let Some(room) = rooms_lookup.get_mut(&login.room) {
             if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
                 room.players.remove(pos);
                 room.stacks.remove(pos);
@@ -186,17 +184,17 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
 
             // If room is empty, delete room
             if room.players.len() == 0 {
-                info!("[{}] Room is empty, cleaning it up", room_id);
-                rooms_lookup.remove(&room_id);
+                info!("[{}] Room is empty, cleaning it up", login.room);
+                rooms_lookup.remove(&login.room);
             }
         }
     }
-    debug!("[{}] Removed user {}", room_id, login.user);
+    debug!("[{}] Removed user {}", login.room, login.user);
 
     // If the game is in progress, let everybody know about the user
     // disconnecting. If we're in the GameOver screen, then don't
     // broadcast any changes so that we don't disrupt the scores screen.
-    if let Some(room) = rooms.read().await.get(&room_id) {
+    if let Some(room) = rooms.read().await.get(&login.room) {
         if room.phase != Phase::GameOver {
             sync_room(&room).await;
         }
