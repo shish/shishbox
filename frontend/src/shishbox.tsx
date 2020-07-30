@@ -16,7 +16,7 @@ if (!sess) {
 let state: State = {
     conn: {
         user: username,
-        room: "12345",
+        room: "WDLF",
         sess: sess,
     },
     loading: "Connecting...",
