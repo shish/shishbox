@@ -90,14 +90,8 @@ async fn main() {
 }
 
 async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
-    // Use a counter to assign a new unique ID for this user.
-    let room_id = 0;
-
     // Split the socket into a sender and receive of messages.
     let (user_ws_tx, mut user_ws_rx) = ws.split();
-
-    // Use an unbounded channel to handle buffering and flushing of messages
-    // to the websocket...
     let (tx, rx) = mpsc::unbounded_channel();
     tokio::task::spawn(rx.forward(user_ws_tx).map(|result| {
         if let Err(e) = result {
@@ -105,50 +99,44 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         }
     }));
 
-    // Save the sender in our list of connected users.
+    let room_id = 0;
+
+    // Make sure a room exists
     {
         let mut rooms_lookup = rooms.write().await;
-        let room = match rooms_lookup.entry(room_id) {
-            Vacant(entry) => {
-                info!(
-                    "[{}] First user {} ({}) creates room ({})",
-                    room_id, login.user, login.sess, login.room
-                );
-                let mut new_room = Room::default();
-                new_room.game = "wd".into();
-                new_room.phase = Phase::Lobby;
-                entry.insert(new_room)
-            }
-            Occupied(entry) => {
-                info!(
-                    "[{}] Adding user {} ({}) into room",
-                    room_id, login.user, login.sess
-                );
-                entry.into_mut()
-            }
-        };
+        if rooms_lookup.get(&room_id).is_none() {
+            info!("[{}] Creating room", room_id);
+            let mut new_room = Room::default();
+            new_room.game = "wd".into();
+            new_room.phase = Phase::Lobby;
+            rooms_lookup.insert(room_id, new_room);
+        }
+    }
+
+    // Save the sender in our list of connected users.
+    if let Some(room) = rooms.write().await.get_mut(&room_id) {
         if room.phase != Phase::Lobby {
             // FIXME: send {error: "Game in progress"}
             return; // spectators?
         }
+        info!(
+            "[{}] Adding user {} ({}) into room",
+            room_id, login.user, login.sess
+        );
         room.stacks.push(vec![]);
         room.players.push(Player {
             name: login.user.clone(),
             sess: login.sess.clone(),
             conn: Some(tx),
         });
+        sync_room(&room).await;
     }
-
-    // Broadcast join after adding user to room, so that as
-    // soon as they connect they get a message to sync them
-    sync_room(&rooms, room_id).await;
 
     // Read from the websocket, broadcast messages to all other users
     while let Some(result) = user_ws_rx.next().await {
         let msg = match result {
             Ok(msg) => msg,
-            Err(e) => {
-                error!("websocket error(user={}): {}", login.user, e);
+            Err(_) => {
                 break;
             }
         };
@@ -160,6 +148,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 "start" => {
                     if let Some(room) = rooms.write().await.get_mut(&room_id) {
                         room.phase = Phase::Game;
+                        sync_room(&room).await;
                     }
                 }
                 "submit" => {
@@ -175,6 +164,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                                 room.phase = Phase::GameOver;
                             }
                         }
+                        sync_room(&room).await;
                     }
                 }
                 _ => {
@@ -185,7 +175,6 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 }
             }
         }
-        sync_room(&rooms, room_id).await;
     }
 
     // After we finish reading from the websocket (ie, it's closed), clean up
@@ -217,26 +206,22 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     // broadcast any changes so that we don't disrupt the scores screen.
     if let Some(room) = rooms.read().await.get(&room_id) {
         if room.phase != Phase::GameOver {
-            sync_room(&rooms, room_id).await;
+            sync_room(&room).await;
         }
     }
 }
 
-async fn sync_room(rooms: &GlobalRooms, room_id: usize) {
-    debug!("[{}] Syncing", room_id);
-    if let Some(room) = rooms.read().await.get(&room_id) {
-        // Something happened. Serialize the current room state and
-        // broadcast it to everybody in the room.
-        let msg = Message::text(serde_json::to_string(room).unwrap());
-        for player in room.players.iter() {
-            if let Some(conn) = &player.conn {
-                if let Err(_disconnected) = conn.send(Ok(msg.clone())) {
-                    // The tx is disconnected, our `user_disconnected` code
-                    // should be happening in another task, nothing more to
-                    // do here.
-                }
+async fn sync_room(room: &Room) {
+    // Something happened. Serialize the current room state and
+    // broadcast it to everybody in the room.
+    let msg = Message::text(serde_json::to_string(room).unwrap());
+    for player in room.players.iter() {
+        if let Some(conn) = &player.conn {
+            if let Err(_disconnected) = conn.send(Ok(msg.clone())) {
+                // The tx is disconnected, our `user_disconnected` code
+                // should be happening in another task, nothing more to
+                // do here.
             }
         }
     }
-    debug!("[{}] Synced", room_id);
 }
