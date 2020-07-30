@@ -1,7 +1,6 @@
 // #![deny(warnings)]
 use futures::{FutureExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
@@ -53,7 +52,7 @@ struct RoomLogin {
     sess: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 struct Command {
     cmd: String,
     data: String,
@@ -85,7 +84,6 @@ async fn main() {
 
     let routes = files.or(room);
 
-    info!("Serving at localhost:1239");
     warp::serve(routes).run(([127, 0, 0, 1], 1239)).await;
 }
 
@@ -134,58 +132,52 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
 
     // Read from the websocket, broadcast messages to all other users
     while let Some(result) = user_ws_rx.next().await {
-        let msg = match result {
-            Ok(msg) => msg,
-            Err(_) => {
-                break;
-            }
+        let cmd: Command = match result {
+            Ok(msg) => match msg.is_text() {
+                true => serde_json::from_str(msg.to_str().unwrap()).unwrap(),
+                false => break,
+            },
+            Err(_) => break,
         };
-        if msg.is_text() {
-            let data = msg.to_str().unwrap();
-            debug!("Got msg: {:?}", data);
-            let cmd: Command = serde_json::from_str(data).unwrap();
-            match cmd.cmd.as_str() {
-                "start" => {
-                    if let Some(room) = rooms.write().await.get_mut(&room_id) {
-                        room.phase = Phase::Game;
-                        sync_room(&room).await;
-                    }
+        match cmd.cmd.as_str() {
+            "start" => {
+                if let Some(room) = rooms.write().await.get_mut(&room_id) {
+                    room.phase = Phase::Game;
+                    sync_room(&room).await;
                 }
-                "submit" => {
-                    if let Some(room) = rooms.write().await.get_mut(&room_id) {
-                        if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
-                            let players = room.stacks.len();
-                            let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                            let my_stack = (pos + round) % players;
-                            room.stacks[my_stack].push(cmd.data);
+            }
+            "submit" => {
+                if let Some(room) = rooms.write().await.get_mut(&room_id) {
+                    if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
+                        let players = room.stacks.len();
+                        let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                        let my_stack = (pos + round) % players;
+                        room.stacks[my_stack].push(cmd.data);
 
-                            let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                            if round == players {
-                                room.phase = Phase::GameOver;
-                            }
+                        let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                        if round == players {
+                            room.phase = Phase::GameOver;
                         }
-                        sync_room(&room).await;
                     }
+                    sync_room(&room).await;
                 }
-                _ => {
-                    error!(
-                        "[{}] Unrecognised message from {}: {}",
-                        room_id, login.user, data
-                    );
-                }
+            }
+            _ => {
+                error!(
+                    "[{}] Unrecognised message from {}: {:?}",
+                    room_id, login.user, cmd
+                );
             }
         }
     }
 
     // After we finish reading from the websocket (ie, it's closed), clean up
+    info!(
+        "[{}] Removing user {} ({})",
+        room_id, login.user, login.sess
+    );
     {
-        info!(
-            "[{}] Removing user {} ({})",
-            room_id, login.user, login.sess
-        );
         let mut rooms_lookup = rooms.write().await;
-
-        // Stream closed up, so remove from the user list
         if let Some(room) = rooms_lookup.get_mut(&room_id) {
             if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
                 room.players.remove(pos);
@@ -198,8 +190,8 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 rooms_lookup.remove(&room_id);
             }
         }
-        debug!("[{}] Removed user {}", room_id, login.user);
     }
+    debug!("[{}] Removed user {}", room_id, login.user);
 
     // If the game is in progress, let everybody know about the user
     // disconnecting. If we're in the GameOver screen, then don't
