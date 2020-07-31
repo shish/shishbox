@@ -84,7 +84,6 @@ export const username = Sentence("{race} {job}", vocabulary).get();
 ==================================================================== */
 
 function SubmitText(state: State) {
-    let wd = state.room as WdRoom;
     let text = state.tmp_text_input;
     if (text == "") {
         console.log("Not submitting an empty text");
@@ -95,7 +94,6 @@ function SubmitText(state: State) {
 
     let new_state: State = {
         ...state,
-        room: wd,
         tmp_text_input: "",
     };
     return [
@@ -187,7 +185,6 @@ const TextInput = ({ stack }: { stack: Array<string> }) => (
 ==================================================================== */
 
 function SubmitDraw(state: State) {
-    let wd = state.room as WdRoom;
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     console.log("SubmitDraw()");
     return [
@@ -283,6 +280,11 @@ function DrawClear(state: State): State {
 = Game Over screen
 ==================================================================== */
 
+const LeaveAction = (state: State) => ({
+    ...state,
+    conn: { ...state.conn, room: null },
+});
+
 const GameOver = ({ state }: { state: State }) => (
     <Screen
         header={"Game Finished"}
@@ -320,10 +322,16 @@ function myIndex(state: State): number {
     return -1;
 }
 
-const LeaveAction = (state: State) => ({
-    ...state,
-    conn: { ...state.conn, room: null },
-});
+const Waiting = ({ waiting }: { waiting: Array<boolean> }) => (
+    <Screen header={"Waiting"} footer={""}>
+        <div class={"inputBlock"}>
+            <p>
+                Waiting for {waiting.length} other player
+                {waiting.length > 1 && "s"}...
+            </p>
+        </div>
+    </Screen>
+);
 
 export function WriteyDrawey({ state }: { state: State }) {
     let wd = state.room as WdRoom;
@@ -343,14 +351,7 @@ export function WriteyDrawey({ state }: { state: State }) {
     return finished ? (
         <GameOver state={state} />
     ) : waiting.length > 0 ? (
-        <Screen header={"Waiting"} footer={""}>
-            <div class={"inputBlock"}>
-                <p>
-                    Waiting for {waiting.length} other player
-                    {waiting.length > 1 && "s"}...
-                </p>
-            </div>
-        </Screen>
+        <Waiting waiting={waiting} />
     ) : stack.length == 0 ? (
         <InitInput suggestion={state.tmp_text_input} stack={stack} />
     ) : stack.length % 2 == 0 ? (
