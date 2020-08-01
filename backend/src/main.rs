@@ -42,7 +42,7 @@ struct Room {
     stacks: Vec<Vec<String>>,
     tick: usize,
 }
-type Rooms = HashMap<String, Room>;
+type Rooms = HashMap<String, Arc<RwLock<Room>>>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
 
 #[derive(Deserialize)]
@@ -97,21 +97,27 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         }
     }));
 
-    // Make sure a room exists
-    {
+    // Find our room, creating it if it doesn't exist
+    let locked_room = {
         let mut rooms_lookup = rooms.write().await;
         if rooms_lookup.get(&login.room).is_none() {
             info!("[{}] Creating room", login.room);
             let mut new_room = Room::default();
             new_room.game = "wd".into(); // WD
             new_room.phase = Phase::Lobby;
-            rooms_lookup.insert(login.room.clone(), new_room);
+            rooms_lookup.insert(login.room.clone(), Arc::new(RwLock::new(new_room)));
         }
-    }
+        rooms_lookup.get(&login.room).unwrap().clone()
+    };
 
     // Save the sender in our list of connected users.
-    if let Some(room) = rooms.write().await.get_mut(&login.room) {
+    {
+        let mut room = locked_room.write().await;
         if room.phase != Phase::Lobby {
+            info!(
+                "[{}] Rejecting {} ({}) from game in progress",
+                login.room, login.user, login.sess
+            );
             // FIXME: send {error: "Game in progress"}
             return; // spectators?
         }
@@ -126,37 +132,32 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     }
 
     // Read from the websocket, broadcast messages to all other users
-    while let Some(result) = user_ws_rx.next().await {
-        let cmd: Command = match result {
-            Ok(msg) => match msg.is_text() {
-                true => serde_json::from_str(msg.to_str().unwrap()).unwrap(),
-                false => break,
-            },
-            Err(_) => break,
+    while let Some(Ok(msg)) = user_ws_rx.next().await {
+        let cmd: Command = match msg.is_text() {
+            true => serde_json::from_str(msg.to_str().unwrap()).unwrap(),
+            false => break,
         };
         match cmd.cmd.as_str() {
             "start" => {
-                if let Some(room) = rooms.write().await.get_mut(&login.room) {
-                    room.phase = Phase::Game;
-                    sync_room(&room).await;
-                }
+                let mut room = locked_room.write().await;
+                room.phase = Phase::Game;
+                sync_room(&room).await;
             }
             "submit" => {
                 // WD
-                if let Some(room) = rooms.write().await.get_mut(&login.room) {
-                    if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
-                        let players = room.stacks.len();
-                        let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                        let my_stack = (pos + round) % players;
-                        room.stacks[my_stack].push(cmd.data);
+                let mut room = locked_room.write().await;
+                if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
+                    let players = room.stacks.len();
+                    let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                    let my_stack = (pos + round) % players;
+                    room.stacks[my_stack].push(cmd.data);
 
-                        let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                        if round == players {
-                            room.phase = Phase::GameOver;
-                        }
+                    let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                    if round == players {
+                        room.phase = Phase::GameOver;
                     }
-                    sync_room(&room).await;
                 }
+                sync_room(&room).await;
             }
             _ => {
                 error!(
@@ -168,28 +169,28 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     }
 
     // After we finish reading from the websocket (ie, it's closed), clean up
-    info!("[{}] Removing {} ({})", login.room, login.user, login.sess);
     {
-        let mut rooms_lookup = rooms.write().await;
-        if let Some(room) = rooms_lookup.get_mut(&login.room) {
-            if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
-                room.players.remove(pos);
-                room.stacks.remove(pos); // WD
-            }
+        info!("[{}] Removing {} ({})", login.room, login.user, login.sess);
+        let mut room = locked_room.write().await;
 
-            // If room is empty, delete room
-            if room.players.len() == 0 {
-                info!("[{}] Room is empty, cleaning it up", login.room);
-                rooms_lookup.remove(&login.room);
-            }
+        if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
+            room.players.remove(pos);
+            room.stacks.remove(pos); // WD
         }
+
+        // If room is empty, delete room
+        if room.players.len() == 0 {
+            info!("[{}] Room is empty, cleaning it up", login.room);
+            rooms.write().await.remove(&login.room);
+        }
+        debug!("[{}] Removed {}", login.room, login.user);
     }
-    debug!("[{}] Removed {}", login.room, login.user);
 
     // If the game is in progress, let everybody know about the user
     // disconnecting. If we're in the GameOver screen, then don't
     // broadcast any changes so that we don't disrupt the scores screen.
-    if let Some(room) = rooms.read().await.get(&login.room) {
+    {
+        let room = locked_room.read().await;
         if room.phase != Phase::GameOver {
             sync_room(&room).await;
         }
