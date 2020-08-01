@@ -27,9 +27,20 @@ let state: State = {
     // room: {"game":"wd","phase":"gameover","players":[{"name":username},{"name":"alien wizard"}],"stacks":[["a cloud over a house","data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR4nO3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAABPO1TCQAAAABJRU5ErkJggg=="],["a dragon dancing with an alien","data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR4nO3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAABPO1TCQAAAABJRU5ErkJggg=="]],"tick":0}
 };
 
+const ResetAction = (state: State) => ({
+    ...state,
+    error: null,
+});
+
 function view(state: State) {
     let screen = null;
-    if (state.conn.room === null) {
+    if (state.error !== null) {
+        screen = (
+            <Screen header={"Error"} footer={<input type="button" value="Leave" onclick={ResetAction} />}>
+                {state.error}
+            </Screen>
+        );
+    } else if (state.conn.room === null) {
         screen = <Login state={state} />;
     } else if (state.loading !== null) {
         screen = (
@@ -81,7 +92,11 @@ function getOpenWebSocketListener(state: State): WebSocketListen {
                 };
             },
             action(state: State, msg: MessageEvent): State {
-                return { ...state, loading: null, room: JSON.parse(msg.data) };
+                let resp = JSON.parse(msg.data);
+                if (resp.error) {
+                    return {...state, loading: null, error: resp.error, conn: {...state.conn, room: null}}
+                }
+                return { ...state, loading: null, room: resp };
             },
             error(state: State, error: Event): State {
                 console.log("Error listening to websocket:", error);

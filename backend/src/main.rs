@@ -45,6 +45,11 @@ struct Room {
 type Rooms = HashMap<String, Arc<RwLock<Room>>>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
 
+#[derive(Serialize)]
+struct RoomError {
+    error: String,
+}
+
 #[derive(Deserialize)]
 struct RoomLogin {
     room: String,
@@ -118,7 +123,9 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 "[{}] Rejecting {} ({}) from game in progress",
                 login.room, login.user, login.sess
             );
-            // FIXME: send {error: "Game in progress"}
+            let full = RoomError {error: "Game in progress".into()};
+            let msg = Message::text(serde_json::to_string(&full).unwrap());
+            if let Err(_) = tx.send(Ok(msg)) {}
             return; // spectators?
         }
         info!("[{}] Adding {} ({})", login.room, login.user, login.sess);
@@ -131,7 +138,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         sync_room(&room).await;
     }
 
-    // Read from the websocket, broadcast messages to all other users
+    // Read from the websocket, update room state, broadcast updates
     while let Some(Ok(msg)) = user_ws_rx.next().await {
         let cmd: Command = match msg.is_text() {
             true => serde_json::from_str(msg.to_str().unwrap()).unwrap(),
@@ -200,10 +207,11 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
 async fn sync_room(room: &Room) {
     // Something happened. Serialize the current room state and
     // broadcast it to everybody in the room.
+    // TODO: Broadcast a diff?
     let msg = Message::text(serde_json::to_string(room).unwrap());
     for player in room.players.iter() {
         if let Some(conn) = &player.conn {
-            if let Err(_disconnected) = conn.send(Ok(msg.clone())) {
+            if let Err(_) = conn.send(Ok(msg.clone())) {
                 // The tx is disconnected, our `user_disconnected` code
                 // should be happening in another task, nothing more to
                 // do here.

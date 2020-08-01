@@ -19,3 +19,14 @@ export const Screen = (
         <footer>{footer}</footer>
     </main>
 );
+
+export const MsgScreen = (
+    { header, footer }: { header: string; footer: any },
+    children,
+) => (
+    <Screen header={header} footer={footer}>
+        <div class={"inputBlock"}>
+            {...children}
+        </div>
+    </Screen>
+);

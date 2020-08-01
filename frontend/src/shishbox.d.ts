@@ -34,6 +34,7 @@ type State = {
         room: string,
         sess: string,
     }
+    error: String,
     room: WdRoom | ChatRoom,
     tmp_text_input: string,
     tmp_draw_last: Array<number>,
