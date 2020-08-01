@@ -103,7 +103,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         if rooms_lookup.get(&login.room).is_none() {
             info!("[{}] Creating room", login.room);
             let mut new_room = Room::default();
-            new_room.game = "wd".into();
+            new_room.game = "wd".into(); // WD
             new_room.phase = Phase::Lobby;
             rooms_lookup.insert(login.room.clone(), new_room);
         }
@@ -115,11 +115,8 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
             // FIXME: send {error: "Game in progress"}
             return; // spectators?
         }
-        info!(
-            "[{}] Adding user {} ({}) into room",
-            login.room, login.user, login.sess
-        );
-        room.stacks.push(vec![]);
+        info!("[{}] Adding {} ({})", login.room, login.user, login.sess);
+        room.stacks.push(vec![]); // WD
         room.players.push(Player {
             name: login.user.clone(),
             sess: login.sess.clone(),
@@ -145,6 +142,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 }
             }
             "submit" => {
+                // WD
                 if let Some(room) = rooms.write().await.get_mut(&login.room) {
                     if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
                         let players = room.stacks.len();
@@ -170,16 +168,13 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     }
 
     // After we finish reading from the websocket (ie, it's closed), clean up
-    info!(
-        "[{}] Removing user {} ({})",
-        login.room, login.user, login.sess
-    );
+    info!("[{}] Removing {} ({})", login.room, login.user, login.sess);
     {
         let mut rooms_lookup = rooms.write().await;
         if let Some(room) = rooms_lookup.get_mut(&login.room) {
             if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
                 room.players.remove(pos);
-                room.stacks.remove(pos);
+                room.stacks.remove(pos); // WD
             }
 
             // If room is empty, delete room
@@ -189,7 +184,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
             }
         }
     }
-    debug!("[{}] Removed user {}", login.room, login.user);
+    debug!("[{}] Removed {}", login.room, login.user);
 
     // If the game is in progress, let everybody know about the user
     // disconnecting. If we're in the GameOver screen, then don't
