@@ -9,12 +9,10 @@ RUN npm run build
 # output backend code in /app/target
 FROM rust:stretch AS build-backend
 COPY backend/Cargo.toml backend/Cargo.lock /app/
-RUN mkdir /app/src && echo "fn main() {}" > /app/src/main.rs
 WORKDIR /app
+RUN mkdir src && echo "fn main() {println!(\"stub\")}" > /app/src/main.rs && cargo build --release && rm -rf src target/release/deps/shishbox*
+COPY backend/src /app/src
 RUN cargo build --release
-COPY backend /app
-RUN cargo build --release
-RUN find /app | grep shishbox-be
 
 # copy to /app/backend and /app/frontend
 FROM debian:stable-slim
@@ -25,4 +23,5 @@ COPY --from=build-backend /app/target/release/shishbox-be /app/backend/
 COPY --from=build-frontend /app/dist /app/frontend/dist/
 
 WORKDIR /app/backend
+ENV RUST_LOG=info
 CMD ["/app/backend/shishbox-be"]
