@@ -89,7 +89,7 @@ async fn main() {
 
     let routes = files.or(room);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 1239)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 1239)).await;
 }
 
 async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
