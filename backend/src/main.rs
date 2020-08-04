@@ -87,7 +87,7 @@ async fn main() {
     // GET / -> index html
     let files = warp::fs::dir("../frontend/dist/");
 
-    let routes = files.or(room);
+    let routes = room.or(files);
 
     warp::serve(routes).run(([0, 0, 0, 0], 1239)).await;
 }
