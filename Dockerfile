@@ -5,6 +5,7 @@ WORKDIR /app
 RUN npm install
 COPY frontend /app
 RUN npm run build
+RUN sed -i 's/require("buffer").Buffer;//' dist/*.js
 
 # output backend code in /app/target
 FROM rust:stretch AS build-backend
