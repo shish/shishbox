@@ -38,13 +38,13 @@ export const Login = ({ state }: { state: State }) => (
             type="text"
             id="room"
             placeholder="Enter Room Code"
-            value="12345"
+            value=""
         />
         <input
             type="text"
             id="user"
             placeholder="Enter Your Name"
-            value="Shish"
+            value=""
         />
         <input type="button" value="Play" onclick={LoginAction} />
     </Screen>
