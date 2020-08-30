@@ -18,7 +18,9 @@ export const Lobby = ({ state }: { state: State }) => (
     <MsgScreen
         header={"Writey Drawey"}
         footer={
-            <input type="button" value="Start Game" onclick={StartAction} />
+            state.room.players[0].name == state.conn.user ?
+                <input type="button" value="Start Game" onclick={StartAction} /> :
+                <div class="notice">Waiting for host...</div>
         }
     >
         <p>Waiting for other players to connect...</p>
