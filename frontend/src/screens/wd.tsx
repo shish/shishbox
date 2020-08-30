@@ -116,7 +116,7 @@ const InitInput = ({
     suggestion: string;
 }) => (
     <Screen
-        header={"Write an insipring sentence"}
+        header={"Write an inspiring sentence"}
         footer={
             <input
                 type="button"
@@ -326,25 +326,28 @@ const Waiting = ({ waiting }: { waiting: Array<boolean> }) => (
     <Screen header={"Waiting"} footer={""}>
         <div class={"inputBlock"}>
             <p>
-                Waiting for {waiting.length} other player
-                {waiting.length > 1 && "s"}...
+                Waiting for {waiting.join(", ")}...
             </p>
         </div>
     </Screen>
 );
 
+function mod(n: number, m: number) {
+    return ((n % m) + m) % m;
+}
+
 export function WriteyDrawey({ state }: { state: State }) {
     let wd = state.room as WdRoom;
     let round = Math.min(...wd.stacks.map(s => s.length));
-    let my_stack = (myIndex(state) + round) % state.room.players.length;
+    let my_stack = mod(myIndex(state) + round, state.room.players.length);
     let stack = wd.stacks[my_stack];
 
     let finished = round >= wd.stacks.length;
     let waiting = [];
     for (let i = 0; i < wd.stacks.length; i++) {
         if (wd.stacks[i].length < stack.length) {
-            // TODO: map unfinished stack to player
-            waiting.push(true);
+            let pid = mod(i - round, state.room.players.length);
+            waiting.push(state.room.players[pid].name);
         }
     }
 
