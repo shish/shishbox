@@ -5,6 +5,8 @@ function LoginAction(state: State): State {
     let user = (document.getElementById("user") as HTMLFormElement).value;
     let room = (document.getElementById("room") as HTMLFormElement).value;
 
+    sessionStorage.setItem("user", user);
+
     return {
         ...state,
         conn: {
@@ -44,7 +46,7 @@ export const Login = ({ state }: { state: State }) => (
             type="text"
             id="user"
             placeholder="Enter Your Name"
-            value=""
+            value={state.conn.user}
         />
         <input type="button" value="Play" onclick={LoginAction} />
     </Screen>

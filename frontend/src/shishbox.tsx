@@ -15,7 +15,7 @@ if (!sess) {
 
 let state: State = {
     conn: {
-        user: "", // username,
+        user: sessionStorage.getItem("user") || "", // username,
         room: null, // "WDLF",
         sess: sess,
     },
