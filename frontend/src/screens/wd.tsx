@@ -184,8 +184,21 @@ const TextInput = ({ stack }: { stack: Array<string> }) => (
 = Draw Input Screen
 ==================================================================== */
 
+function grey2bw(canvas: HTMLCanvasElement) {
+    let ctx = canvas.getContext('2d');
+    let data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let n = 0; n < data.data.length; n += 4) {
+        let px = data.data[n + 3] > 0 ? 0 : 255;
+        data.data[n] = data.data[n+1] = data.data[n+2] = px;
+        data.data[n+3] = 255;
+    }
+    ctx.putImageData(data, 0, 0);
+}
+
 function SubmitDraw(state: State) {
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
+    grey2bw(canvas);
+
     console.log("SubmitDraw()");
     return [
         state,
