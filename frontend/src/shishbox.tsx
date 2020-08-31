@@ -4,7 +4,8 @@ import { WebSocketListen } from "hyperapp-fx";
 import { Screen } from "./screens/base";
 import { Login } from "./screens/login";
 import { Lobby } from "./screens/lobby";
-import { WriteyDrawey, username } from "./screens/wd";
+import { WriteyDrawey } from "./screens/wd";
+import { username } from "./lib/sentences";
 import { v4 as uuidv4 } from "uuid";
 
 const DEV = false;

@@ -1,83 +1,8 @@
 import { h } from "hyperapp";
 import { WebSocketSend } from "hyperapp-fx";
-import Sentence from "sentence-engine";
 import { Screen } from "./base";
 import { socket_name } from "../shishbox";
-
-/* ====================================================================
-= Example sentences
-==================================================================== */
-
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-const templates = [
-    // "{race} {job}",
-    // "{animal} {role}",
-    "{people} {event}",
-    "{a-people} dancing with {a-people}",
-    "romance between {a-people} and {a-people}",
-    "the best {food}",
-    "{a-job} riding {a-animal}",
-    "{a-people} driving {a-car}",
-    "{a-people} eating {a-food}",
-    "race between {a-race} and {a-job}",
-    "{a-job} and {a-job} having a cooking battle",
-    "the world's most beautiful {job}",
-    "{a-weather} over {a-building}",
-];
-let vocabulary = {
-    race: ["robot", "elf", "alien", "skeleton", "dragon", "ghost"],
-    job: [
-        "chef",
-        "wizard",
-        "ninja",
-        "pirate",
-        "fairy",
-        "clown",
-        "hacker",
-        "superhero",
-        "angel",
-        "demon",
-        "astronaut",
-    ],
-    animal: [
-        "frog",
-        "sheep",
-        "cat",
-        "monkey",
-        "worm",
-        "unicorn",
-        "bird",
-        "turtle",
-        "bat",
-        "octopus",
-    ],
-    role: ["king", "queen", "prince", "princess"],
-    food: [
-        "cake",
-        "pie",
-        "banana",
-        "carrot",
-        "pumpkin",
-        "pear",
-        "cheese",
-        "flower",
-    ],
-    event: ["birthday party", "job interview"],
-    building: ["hotel", "house", "bank", "hospital", "spaceship"],
-    weather: ["cloud", "rainbow"],
-    car: ["car", "truck", "bus", "golf cart", "monster truck"],
-};
-vocabulary["people"] = vocabulary["race"].concat(vocabulary["animal"]);
-const suggestions = shuffleArray(
-    templates.map(t => Sentence(t, vocabulary).get()),
-).splice(0, 5);
-export const username = Sentence("{race} {job}", vocabulary).get();
+import { suggestions } from "../lib/sentences";
 
 /* ====================================================================
 = Text Input Screen
