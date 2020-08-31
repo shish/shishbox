@@ -7,6 +7,8 @@ import { Lobby } from "./screens/lobby";
 import { WriteyDrawey, username } from "./screens/wd";
 import { v4 as uuidv4 } from "uuid";
 
+const DEV = false;
+
 let sess = sessionStorage.getItem("sess");
 if (!sess) {
     sess = uuidv4();
@@ -15,8 +17,8 @@ if (!sess) {
 
 let state: State = {
     conn: {
-        user: sessionStorage.getItem("user") || "", // username,
-        room: null, // "WDLF",
+        user: DEV ? username : (sessionStorage.getItem("user") || ""),
+        room: DEV ? "WDLF" : null,
         sess: sess,
     },
     loading: "Connecting...",
@@ -25,7 +27,6 @@ let state: State = {
     tmp_draw_last: [],
     tmp_text_input: "",
     error: null,
-    // room: {"game":"wd","phase":"gameover","players":[{"name":username},{"name":"alien wizard"}],"stacks":[["a cloud over a house","data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR4nO3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAABPO1TCQAAAABJRU5ErkJggg=="],["a dragon dancing with an alien","data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAABFUlEQVR4nO3BMQEAAADCoPVP7WsIoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAMBPAABPO1TCQAAAABJRU5ErkJggg=="]],"tick":0}
 };
 
 const ResetAction = (state: State) => ({
