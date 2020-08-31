@@ -14,13 +14,21 @@ const StartAction = (state: State) => [
     }),
 ];
 
+const LeaveAction = (state: State) => ({
+    ...state,
+    conn: {
+        ...state.conn,
+        room: null,
+    }
+} as State);
+
 export const Lobby = ({ state }: { state: State }) => (
     <MsgScreen
         header={"Writey Drawey"}
         footer={
             state.room.players[0].name == state.conn.user ?
                 <input type="button" value="Start Game" onclick={StartAction} /> :
-                <div class="notice">Waiting for host...</div>
+                <input type="button" value="Leave" onclick={LeaveAction} />
         }
     >
         <p>Waiting for other players to connect...</p>
