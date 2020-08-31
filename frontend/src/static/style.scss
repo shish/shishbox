@@ -87,9 +87,12 @@ INPUT[type="text"], INPUT[type="button"] {
     display: flex;
     justify-content: center;
     flex-direction: column;
+    overflow: scroll;
     SPAN {
       flex: 0 0 auto;
-      font-size: 2em;
+      // 2em is good most of the time but lots of overflow
+      // on small screens if anybody has a long sentence
+      font-size: 1em;
     }
   }
 }
