@@ -27,6 +27,7 @@ let state: State = {
     ws_errors: 0,
     tmp_draw_last: [],
     tmp_text_input: "",
+    tmp_draw_mode: "brush",
     error: null,
 };
 

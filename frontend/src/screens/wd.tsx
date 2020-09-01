@@ -113,7 +113,8 @@ function grey2bw(canvas: HTMLCanvasElement) {
     let ctx = canvas.getContext('2d');
     let data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     for (let n = 0; n < data.data.length; n += 4) {
-        let px = data.data[n + 3] > 0 ? 0 : 255;
+        // opaque dark is black, all else (ie, transparent and / or bright) is white
+        let px = (data.data[n + 3] > 0 && data.data[n] < 128) ? 0 : 255;
         data.data[n] = data.data[n+1] = data.data[n+2] = px;
         data.data[n+3] = 255;
     }
@@ -137,7 +138,14 @@ function SubmitDraw(state: State) {
     ];
 }
 
-const DrawInput = ({ stack }: { stack: Array<string> }) => (
+const Tool = ({name, icon, mode}) => (
+    <i
+        class={"fas fa-"+icon+" "+(mode==name ? "selected" : "")}
+        onclick={[DrawMode, name]}
+        />
+);
+
+const DrawInput = ({ stack, mode }: { stack: Array<string>, mode: string }) => (
     <Screen
         header={<span>Draw "{stack[stack.length - 1]}"</span>}
         footer={
@@ -149,7 +157,13 @@ const DrawInput = ({ stack }: { stack: Array<string> }) => (
         }
     >
         <div class={"inputBlock"}>
-            <p>&nbsp;</p>
+            <p class={"tools"}>
+                <Tool name="brush" icon="paint-brush" mode={mode} />
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <Tool name="pen" icon="pencil-alt" mode={mode} />
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <Tool name="eraser" icon="eraser" mode={mode} />
+            </p>
             <canvas
                 id="canvas"
                 width={256}
@@ -188,9 +202,19 @@ function DrawMove(state: State, e: MouseEvent | TouchEvent): State {
     if (drawing) {
         let canvas = document.getElementById("canvas") as HTMLCanvasElement;
         let context = canvas.getContext("2d");
-        context.strokeStyle = "#000";
         context.lineJoin = "round";
-        context.lineWidth = 6;
+        if(state.tmp_draw_mode == "brush") {
+            context.strokeStyle = "#000";
+            context.lineWidth = 6;
+        }
+        else if(state.tmp_draw_mode == "pen") {
+            context.strokeStyle = "#000";
+            context.lineWidth = 3;
+        }
+        else if(state.tmp_draw_mode == "eraser") {
+            context.strokeStyle = "#FFF";
+            context.lineWidth = 9;
+        }
 
         context.beginPath();
         if (e.type == "mousemove" || e.type == "touchmove") {
@@ -207,11 +231,21 @@ function DrawMove(state: State, e: MouseEvent | TouchEvent): State {
     return { ...state, tmp_draw_last: [x, y] };
 }
 
+function DrawMode(state: State, mode: "brush" | "pen" | "eraser"): State {
+    return {
+        ...state,
+        tmp_draw_mode: mode,
+    };
+}
+
 function DrawClear(state: State): State {
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
     let context = canvas.getContext("2d");
     context.clearRect(0, 0, canvas.width, canvas.height);
-    return state;
+    return {
+        ...state,
+        tmp_draw_mode: "brush",
+    };
 }
 
 /* ====================================================================
@@ -298,6 +332,6 @@ export function WriteyDrawey({ state }: { state: State }) {
     ) : stack.length % 2 == 0 ? (
         <TextInput stack={stack} />
     ) : (
-        <DrawInput stack={stack} />
+        <DrawInput mode={state.tmp_draw_mode} stack={stack} />
     );
 }

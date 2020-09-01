@@ -38,6 +38,7 @@ type State = {
     room: WdRoom | ChatRoom,
     tmp_text_input: string,
     tmp_draw_last: Array<number>,
+    tmp_draw_mode: "brush" | "pen" | "eraser",
     ws_errors: number,
     loading: string,
 }

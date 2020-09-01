@@ -25,12 +25,14 @@ const About = () => (
             &nbsp;by&nbsp;
             <a href={"mailto:s@shish.io"}>Shish</a>
         </h2>
+        {/*
         <p className={"donate"}>
             If you like this app and find it fun,
             <br />
             feel free to donate via{" "}
             <a href={"https://paypal.me/shish2k"}>PayPal</a>
         </p>
+        */}
     </div>
 );
 

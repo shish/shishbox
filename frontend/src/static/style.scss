@@ -1,3 +1,6 @@
+@import 'fontawesome';
+@import 'solid';
+
 * {box-sizing: border-box;}
 BODY {
   margin: 0;
@@ -42,6 +45,13 @@ MAIN {
       P {
         margin: 0px;
         padding: 0.5rem;
+      }
+      .tools {
+        font-size: 2em;
+        color: lightgray;
+        .selected {
+          color: black;
+        }
       }
     }
     CANVAS, IMG {
