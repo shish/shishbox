@@ -39,7 +39,7 @@ struct Room {
     game: String,
     phase: Phase,
     players: Vec<Player>,
-    stacks: Vec<Vec<String>>,
+    stacks: Vec<Vec<(String, String)>>,
     tick: usize,
 }
 type Rooms = HashMap<String, Arc<RwLock<Room>>>;
@@ -157,7 +157,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                     let players = room.stacks.len();
                     let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
                     let my_stack = (pos + round) % players;
-                    room.stacks[my_stack].push(cmd.data);
+                    room.stacks[my_stack].push((login.user.clone(), cmd.data));
 
                     let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
                     if round == players {

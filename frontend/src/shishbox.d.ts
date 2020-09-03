@@ -16,7 +16,7 @@ type Room = {
 }
 
 type WdRoom = Room & {
-    stacks: Array<Array<string>>,
+    stacks: Array<Array<[string, string]>>,
 }
 
 type Message = {

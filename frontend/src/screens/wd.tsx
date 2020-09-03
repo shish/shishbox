@@ -37,7 +37,7 @@ const InitInput = ({
     stack,
     suggestion,
 }: {
-    stack: Array<string>;
+    stack: Array<[string, string]>;
     suggestion: string;
 }) => (
     <Screen
@@ -79,7 +79,7 @@ const InitInput = ({
     </Screen>
 );
 
-const TextInput = ({ stack }: { stack: Array<string> }) => (
+const TextInput = ({ stack }: { stack: Array<[string, string]> }) => (
     <Screen
         header={"Describe this"}
         footer={
@@ -91,7 +91,7 @@ const TextInput = ({ stack }: { stack: Array<string> }) => (
         }
     >
         <div class={"inputBlock"}>
-            <img src={stack[stack.length - 1]} />
+            <img src={stack[stack.length - 1][1]} />
         </div>
         <input
             type={"text"}
@@ -109,7 +109,7 @@ const TextInput = ({ stack }: { stack: Array<string> }) => (
 = Draw Input Screen
 ==================================================================== */
 
-function grey2bw(canvas: HTMLCanvasElement) {
+function quantize(canvas: HTMLCanvasElement) {
     let ctx = canvas.getContext('2d');
     let data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     for (let n = 0; n < data.data.length; n += 4) {
@@ -123,7 +123,7 @@ function grey2bw(canvas: HTMLCanvasElement) {
 
 function SubmitDraw(state: State) {
     let canvas = document.getElementById("canvas") as HTMLCanvasElement;
-    grey2bw(canvas);
+    quantize(canvas);
 
     console.log("SubmitDraw()");
     return [
@@ -145,9 +145,9 @@ const Tool = ({name, icon, mode}) => (
         />
 );
 
-const DrawInput = ({ stack, mode }: { stack: Array<string>, mode: string }) => (
+const DrawInput = ({ stack, mode }: { stack: Array<[string, string]>, mode: string }) => (
     <Screen
-        header={<span>Draw "{stack[stack.length - 1]}"</span>}
+        header={<span>Draw "{stack[stack.length - 1][1]}"</span>}
         footer={
             <input
                 type="button"
@@ -262,20 +262,19 @@ const GameOver = ({ state }: { state: State }) => (
         header={"Game Finished"}
         footer={<input type="button" value="Leave" onclick={LeaveAction} />}
     >
-        {(state.room as WdRoom).stacks.map((s, p) => (
+        {(state.room as WdRoom).stacks.map(stack => (
             <div class={"inputBlock"}>
-                <p>{state.room.players[p].name}'s idea:</p>
-                <div class="summary">
-                    {s.map((v, i) =>
-                        i % 2 == 0 ? (
-                            <p>
-                                <span>{v}</span>
-                            </p>
-                        ) : (
-                            <img src={v} />
-                        ),
+                <ol class="summary">
+                    {stack.map(sheet =>
+                        <li>
+                            {sheet[1].startsWith("data:") ?
+                                <img src={sheet[1]} /> :
+                                <span>{sheet[1]}</span>
+                            }
+                            <div class="author">{sheet[0]}</div>
+                        </li>
                     )}
-                </div>
+                </ol>
             </div>
         ))}
     </Screen>
@@ -329,7 +328,7 @@ export function WriteyDrawey({ state }: { state: State }) {
         <Waiting waiting={waiting} />
     ) : stack.length == 0 ? (
         <InitInput suggestion={state.tmp_text_input} stack={stack} />
-    ) : stack.length % 2 == 0 ? (
+    ) : stack[stack.length-1][1].startsWith("data:") ? (
         <TextInput stack={stack} />
     ) : (
         <DrawInput mode={state.tmp_draw_mode} stack={stack} />
