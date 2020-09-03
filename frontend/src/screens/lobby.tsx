@@ -26,7 +26,7 @@ export const Lobby = ({ state }: { state: State }) => (
     <MsgScreen
         header={"Writey Drawey"}
         footer={
-            state.room.players[0].name == state.conn.user ?
+            (state.room.players[0].name == state.conn.user && state.room.players.length > 1) ?
                 <input type="button" value="Start Game" onclick={StartAction} /> :
                 <input type="button" value="Leave" onclick={LeaveAction} />
         }
