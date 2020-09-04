@@ -79,7 +79,8 @@ async fn main() {
         .and(warp::ws())
         .and(rooms)
         .and(warp::query::<RoomLogin>())
-        .map(|ws: warp::ws::Ws, rooms, login: RoomLogin| {
+        .map(|ws: warp::ws::Ws, rooms, mut login: RoomLogin| {
+            login.room = login.room.to_uppercase();
             // This will call our function if the handshake succeeds.
             ws.on_upgrade(move |socket| user_connected(socket, rooms, login))
         });
