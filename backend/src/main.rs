@@ -160,12 +160,22 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                     let players = room.stacks.len();
                     let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
                     let my_stack = (pos + round) % players;
-                    room.stacks[my_stack].push((login.user.clone(), cmd.data.clone()));
                     info!("[{}] {} submitted {}", login.room, login.user, cmd.data);
 
-                    let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                    if round == players {
-                        room.phase = Phase::GameOver;
+                    let data_is_img = cmd.data.starts_with("data:");
+                    let prev_is_img = match room.stacks[my_stack].len() {
+                        0 => true,
+                        _ => room.stacks[my_stack].last().unwrap().1.starts_with("data:"),
+                    };
+                    if prev_is_img == data_is_img {
+                        warn!("[{}] {} ignoring dupe submission", login.room, login.user);
+                    } else {
+                        room.stacks[my_stack].push((login.user.clone(), cmd.data.clone()));
+
+                        let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
+                        if round == players {
+                            room.phase = Phase::GameOver;
+                        }
                     }
                 }
                 sync_room(&room).await;
