@@ -124,7 +124,9 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                 "[{}] Rejecting {} ({}) from game in progress",
                 login.room, login.user, login.sess
             );
-            let full = RoomError {error: "Game in progress".into()};
+            let full = RoomError {
+                error: "Game in progress".into(),
+            };
             let msg = Message::text(serde_json::to_string(&full).unwrap());
             if let Err(_) = tx.send(Ok(msg)) {}
             return; // spectators?
@@ -158,7 +160,8 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
                     let players = room.stacks.len();
                     let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
                     let my_stack = (pos + round) % players;
-                    room.stacks[my_stack].push((login.user.clone(), cmd.data));
+                    room.stacks[my_stack].push((login.user.clone(), cmd.data.clone()));
+                    info!("[{}] {} submitted {}", login.room, login.user, cmd.data);
 
                     let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
                     if round == players {
