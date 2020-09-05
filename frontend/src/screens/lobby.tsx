@@ -31,11 +31,7 @@ export const Lobby = ({ state }: { state: State }) => (
                 <input type="button" value="Leave" onclick={LeaveAction} />
         }
     >
-        <p>Waiting for other players to connect...</p>
-        {state.room.players.map((p, n) => (
-            <p>
-                {n + 1} - {p.name}
-            </p>
-        ))}
+        Waiting for other players to connect...
+        <ol class="players">{state.room.players.map(p => <li>{p.name}</li>)}</ol>
     </MsgScreen>
 );

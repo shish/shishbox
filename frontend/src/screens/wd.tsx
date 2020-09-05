@@ -1,6 +1,6 @@
 import { h } from "hyperapp";
 import { WebSocketSend } from "hyperapp-fx";
-import { Screen } from "./base";
+import { Screen, MsgScreen } from "./base";
 import { socket_name } from "../shishbox";
 import { suggestions } from "../lib/sentences";
 
@@ -17,12 +17,12 @@ function SubmitText(state: State) {
 
     console.log("SubmitText(" + text + ")");
 
-    let new_state: State = {
-        ...state,
-        tmp_text_input: "",
-    };
     return [
-        new_state,
+        {
+            ...state,
+            tmp_text_input: "",
+            loading: "Submitting description..."
+        },
         WebSocketSend({
             url: socket_name(state),
             data: JSON.stringify({
@@ -127,7 +127,10 @@ function SubmitDraw(state: State) {
 
     console.log("SubmitDraw()");
     return [
-        state,
+        {
+            ...state,
+            loading: "Submitting drawing..."
+        },
         WebSocketSend({
             url: socket_name(state),
             data: JSON.stringify({
@@ -294,13 +297,9 @@ function myIndex(state: State): number {
 }
 
 const Waiting = ({ waiting }: { waiting: Array<boolean> }) => (
-    <Screen header={"Waiting"} footer={""}>
-        <div class={"inputBlock"}>
-            <p>
-                Waiting for {waiting.join(", ")}...
-            </p>
-        </div>
-    </Screen>
+    <MsgScreen header={"Waiting"} footer={""}>
+        Waiting for {waiting.join(", ")}...
+    </MsgScreen>
 );
 
 function mod(n: number, m: number) {

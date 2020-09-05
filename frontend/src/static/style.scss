@@ -53,6 +53,11 @@ MAIN {
           color: black;
         }
       }
+      OL.players {
+        padding: 0;
+        margin: 0;
+        padding-top: .5rem;
+      }
     }
     CANVAS, IMG {
       background: #FFF;

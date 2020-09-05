@@ -1,7 +1,7 @@
 /// <reference path='./shishbox.d.ts'/>
 import { app, h } from "hyperapp";
 import { WebSocketListen } from "hyperapp-fx";
-import { Screen } from "./screens/base";
+import { Screen, MsgScreen } from "./screens/base";
 import { Login } from "./screens/login";
 import { Lobby } from "./screens/lobby";
 import { WriteyDrawey } from "./screens/wd";
@@ -40,17 +40,17 @@ function view(state: State) {
     let screen = null;
     if (state.error !== null) {
         screen = (
-            <Screen header={"Error"} footer={<input type="button" value="Leave" onclick={ResetAction} />}>
+            <MsgScreen header={"Error"} footer={<input type="button" value="Leave" onclick={ResetAction} />}>
                 {state.error}
-            </Screen>
+            </MsgScreen>
         );
     } else if (state.conn.room === null) {
         screen = <Login state={state} />;
     } else if (state.loading !== null) {
         screen = (
-            <Screen header={"Loading"} footer={""}>
+            <MsgScreen header={"Loading"} footer={""}>
                 {state.loading}
-            </Screen>
+            </MsgScreen>
         );
     } else if (state.room.phase == "lobby") {
         screen = <Lobby state={state} />;
