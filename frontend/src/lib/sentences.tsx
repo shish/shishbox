@@ -27,10 +27,12 @@ const templates = [
     "{a-job} and {a-job} having a cooking battle",
     "the world's most beautiful {job}",
     "{a-weather} over {a-building}",
+    "{a-people} casting a magic spell",
+    "{a-people} on a date with {a-people}",
 ];
 
 let vocabulary = {
-    race: ["robot", "elf", "alien", "skeleton", "dragon", "ghost", "mermaid"],
+    race: ["robot", "elf", "alien", "skeleton", "dragon", "ghost", "mermaid", "brain"],
     job: [
         "chef",
         "wizard",
@@ -71,9 +73,9 @@ let vocabulary = {
         "flower",
     ],
     event: ["birthday party", "job interview"],
-    building: ["hotel", "house", "bank", "hospital", "spaceship"],
+    building: ["hotel", "house", "bank", "hospital", "spaceship", "mountain"],
     weather: ["cloud", "rainbow"],
-    car: ["car", "truck", "bus", "golf cart", "monster truck", "bicycle"],
+    car: ["car", "truck", "bus", "golf cart", "monster truck", "bicycle", "hamster ball"],
 };
 vocabulary["people"] = vocabulary["race"].concat(vocabulary["animal"]);
 
