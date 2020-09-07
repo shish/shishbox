@@ -30,7 +30,7 @@ let state: State = {
     tmp_draw_mode: "brush",
     error: null,
     settings: {
-        sound: true,
+        sound: !DEV,
     }
 };
 

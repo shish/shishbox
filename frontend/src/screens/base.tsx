@@ -15,8 +15,8 @@ export const Screen = (
     <main>
         <header>
             { settings.sound ? 
-                <i class="fas fa-volume-up" onclick={ToggleSound} /> :
-                <i class="fas fa-volume-mute" onclick={ToggleSound} />
+                <i class="fas fa-bell" onclick={ToggleSound} /> :
+                <i class="fas fa-bell-slash" onclick={ToggleSound} />
             }
             <h1
                 onclick={function(state: State) {
