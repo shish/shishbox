@@ -25,10 +25,18 @@ MAIN {
   justify-content: space-between;
   HEADER {
     flex: 0 0 auto;
+    display: flex;
     border-bottom: 1px solid black;
     background-image: linear-gradient(180deg, #AFA 0%, #8C8 100%);
+    height: 4rem;
+    align-items: center;
+    I {
+      flex: 0 0 auto;
+      width: 4rem;
+      font-size: 2rem;
+    }
     H1 {
-      width: 100%;
+      flex: 1 1 auto;
       font-size: 1.5rem;
     }
   }

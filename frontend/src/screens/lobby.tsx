@@ -24,6 +24,7 @@ const LeaveAction = (state: State) => ({
 
 export const Lobby = ({ state }: { state: State }) => (
     <MsgScreen
+        settings={state.settings}
         header={"Writey Drawey"}
         footer={
             (state.room.players[0].name == state.conn.user && state.room.players.length > 1) ?

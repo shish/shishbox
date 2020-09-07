@@ -1,8 +1,9 @@
 import { h } from "hyperapp";
 import { WebSocketSend } from "hyperapp-fx";
-import { Screen, MsgScreen } from "./base";
+import { Screen, MsgScreen, Sfx } from "./base";
 import { socket_name } from "../shishbox";
 import { suggestions } from "../lib/sentences";
+import new_round from "../static/new-round.mp3";
 
 /* ====================================================================
 = Text Input Screen
@@ -34,13 +35,14 @@ function SubmitText(state: State) {
 }
 
 const InitInput = ({
-    stack,
+    state,
     suggestion,
 }: {
-    stack: Array<[string, string]>;
+    state: State,
     suggestion: string;
 }) => (
     <Screen
+        settings={state.settings}
         header={"Write an inspiring sentence"}
         footer={
             <input
@@ -50,6 +52,7 @@ const InitInput = ({
             />
         }
     >
+        <Sfx state={state} src={new_round} />
         <div class={"inputBlock"}>
             <p>For example:</p>
             {suggestions.map(x => (
@@ -79,8 +82,9 @@ const InitInput = ({
     </Screen>
 );
 
-const TextInput = ({ stack }: { stack: Array<[string, string]> }) => (
+const TextInput = ({ state, stack }: { state: State, stack: Array<[string, string]> }) => (
     <Screen
+        settings={state.settings}
         header={"Describe this"}
         footer={
             <input
@@ -90,6 +94,7 @@ const TextInput = ({ stack }: { stack: Array<[string, string]> }) => (
             />
         }
     >
+        <Sfx state={state} src={new_round} />
         <div class={"inputBlock"}>
             <img src={stack[stack.length - 1][1]} />
         </div>
@@ -148,8 +153,9 @@ const Tool = ({name, icon, mode}) => (
         />
 );
 
-const DrawInput = ({ stack, mode }: { stack: Array<[string, string]>, mode: string }) => (
+const DrawInput = ({ state, stack, mode }: { state: State, stack: Array<[string, string]>, mode: string }) => (
     <Screen
+        settings={state.settings}
         header={<span>Draw "{stack[stack.length - 1][1]}"</span>}
         footer={
             <input
@@ -159,6 +165,7 @@ const DrawInput = ({ stack, mode }: { stack: Array<[string, string]>, mode: stri
             />
         }
     >
+        <Sfx state={state} src={new_round} />
         <div class={"inputBlock"}>
             <p class={"tools"}>
                 <Tool name="brush" icon="paint-brush" mode={mode} />
@@ -262,9 +269,11 @@ const LeaveAction = (state: State) => ({
 
 const GameOver = ({ state }: { state: State }) => (
     <Screen
+        settings={state.settings}
         header={"Game Finished"}
         footer={<input type="button" value="Leave" onclick={LeaveAction} />}
     >
+        <Sfx state={state} src={new_round} />
         {(state.room as WdRoom).stacks.map(stack => (
             <div class={"inputBlock"}>
                 <ol class="summary">
@@ -296,8 +305,8 @@ function myIndex(state: State): number {
     return -1;
 }
 
-const Waiting = ({ waiting }: { waiting: Array<boolean> }) => (
-    <MsgScreen header={"Waiting"} footer={""}>
+const Waiting = ({ state, waiting }: { state: State, waiting: Array<boolean> }) => (
+    <MsgScreen settings={state.settings} header={"Waiting"} footer={""}>
         Waiting for {waiting.join(", ")}...
     </MsgScreen>
 );
@@ -324,12 +333,12 @@ export function WriteyDrawey({ state }: { state: State }) {
     return finished ? (
         <GameOver state={state} />
     ) : waiting.length > 0 ? (
-        <Waiting waiting={waiting} />
+        <Waiting state={state} waiting={waiting} />
     ) : stack.length == 0 ? (
-        <InitInput suggestion={state.tmp_text_input} stack={stack} />
+        <InitInput state={state} suggestion={state.tmp_text_input}/>
     ) : stack[stack.length-1][1].startsWith("data:") ? (
-        <TextInput stack={stack} />
+        <TextInput state={state} stack={stack} />
     ) : (
-        <DrawInput mode={state.tmp_draw_mode} stack={stack} />
+        <DrawInput state={state} mode={state.tmp_draw_mode} stack={stack} />
     );
 }

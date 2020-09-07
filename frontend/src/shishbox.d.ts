@@ -1,4 +1,5 @@
 declare module '*.png';
+declare module '*.mp3';
 declare module 'hyperapp';
 
 type FormInputEvent = {
@@ -28,6 +29,10 @@ type ChatRoom = Room & {
     messages: Array<Message>,
 }
 
+type Settings = {
+    sound: boolean,
+}
+
 type State = {
     conn: {
         user: string,
@@ -41,4 +46,5 @@ type State = {
     tmp_draw_mode: "brush" | "pen" | "eraser",
     ws_errors: number,
     loading: string,
+    settings: Settings,
 }

@@ -29,6 +29,9 @@ let state: State = {
     tmp_text_input: "",
     tmp_draw_mode: "brush",
     error: null,
+    settings: {
+        sound: true,
+    }
 };
 
 const ResetAction = (state: State) => ({
@@ -40,7 +43,7 @@ function view(state: State) {
     let screen = null;
     if (state.error !== null) {
         screen = (
-            <MsgScreen header={"Error"} footer={<input type="button" value="Leave" onclick={ResetAction} />}>
+            <MsgScreen settings={state.settings} header={"Error"} footer={<input type="button" value="Leave" onclick={ResetAction} />}>
                 {state.error}
             </MsgScreen>
         );
@@ -48,7 +51,7 @@ function view(state: State) {
         screen = <Login state={state} />;
     } else if (state.loading !== null) {
         screen = (
-            <MsgScreen header={"Loading"} footer={""}>
+            <MsgScreen settings={state.settings} header={"Loading"} footer={""}>
                 {state.loading}
             </MsgScreen>
         );

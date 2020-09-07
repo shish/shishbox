@@ -37,7 +37,7 @@ const About = () => (
 );
 
 export const Login = ({ state }: { state: State }) => (
-    <Screen header={"Join a Game"} footer={<About />}>
+    <Screen settings={state.settings} header={"Join a Game"} footer={<About />}>
         <input
             type="text"
             id="room"
