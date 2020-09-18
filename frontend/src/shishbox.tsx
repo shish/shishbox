@@ -34,6 +34,16 @@ let state: State = {
     }
 };
 
+try {
+    state.settings = {
+        ...state.settings,
+        ...JSON.parse(localStorage.getItem("settings") || "{}")
+    };
+}
+catch(err) {
+    console.log("Error loading state:", err);
+}
+
 const ResetAction = (state: State) => ({
     ...state,
     error: null,

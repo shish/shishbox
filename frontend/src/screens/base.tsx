@@ -1,12 +1,16 @@
 import { h } from "hyperapp";
 
-const ToggleSound = (state: State) => ({
-    ...state,
-    settings: {
-        ...state.settings,
-        sound: !state.settings.sound
+function ToggleSound(state: State): State {
+    let new_state = {
+        ...state,
+        settings: {
+            ...state.settings,
+            sound: !state.settings.sound
+        }
     }
-} as State);
+    localStorage.setItem("settings", JSON.stringify(new_state.settings));
+    return new_state;
+}
 
 export const Screen = (
     { settings, header, footer }: { settings: Settings, header: string; footer: any },
