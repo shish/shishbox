@@ -32,7 +32,8 @@ export const Lobby = ({ state }: { state: State }) => (
                 <input type="button" value="Leave" onclick={LeaveAction} />
         }
     >
-        Waiting for other players to connect...
+        Room code is <b>{state.conn.room.toUpperCase()}</b>
         <ol class="players">{state.room.players.map(p => <li>{p.name}</li>)}</ol>
+        Waiting for other players to connect...
     </MsgScreen>
 );
