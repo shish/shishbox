@@ -42,15 +42,15 @@ export const Login = ({ state }: { state: State }) => (
     <Screen settings={state.settings} header={"Join a Game"} right={null} footer={<About />}>
         <input
             type="text"
-            id="room"
-            placeholder="Enter Room Code"
-            value=""
-        />
-        <input
-            type="text"
             id="user"
             placeholder="Enter Your Name"
             value={state.conn.user}
+        />
+        <input
+            type="text"
+            id="room"
+            placeholder="Enter Room Code"
+            value=""
         />
         <input type="button" value="Play" onclick={LoginAction} />
     </Screen>

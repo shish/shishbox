@@ -36,14 +36,22 @@ impl Default for Phase {
 
 #[derive(Serialize, Deserialize, Default)]
 struct Room {
+    public: bool,
     game: String,
     phase: Phase,
     players: Vec<Player>,
-    stacks: Vec<Vec<(String, String)>>,
-    tick: usize,
+    stacks: Vec<Vec<(String, String)>>, // WD
 }
 type Rooms = HashMap<String, Arc<RwLock<Room>>>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
+
+#[derive(Serialize)]
+struct RoomSummary {
+    name: String,
+    game: String,
+    players: usize,
+    limit: usize,
+}
 
 #[derive(Serialize)]
 struct RoomError {
@@ -67,17 +75,14 @@ struct Command {
 async fn main() {
     pretty_env_logger::init();
 
-    // Keep track of all connected users, key is usize, value
-    // is a websocket sender.
-    let rooms = GlobalRooms::default();
-    // Turn our "state" into a new Filter...
-    let rooms = warp::any().map(move || rooms.clone());
+    let rooms_map = GlobalRooms::default();
+    let rooms_filter = warp::any().map(move || rooms_map.clone());
 
     // GET /room -> websocket upgrade
     let room = warp::path("room")
         // The `ws()` filter will prepare Websocket handshake...
         .and(warp::ws())
-        .and(rooms)
+        .and(rooms_filter.clone())
         .and(warp::query::<RoomLogin>())
         .map(|ws: warp::ws::Ws, rooms, mut login: RoomLogin| {
             login.room = login.room.to_uppercase();
@@ -85,12 +90,36 @@ async fn main() {
             ws.on_upgrade(move |socket| user_connected(socket, rooms, login))
         });
 
+    // GET /rooms -> list of rooms
+    let rooms = warp::path("rooms")
+        .and(rooms_filter.clone())
+        .and_then(list_rooms);
+
     // GET / -> index html
     let files = warp::fs::dir("../frontend/dist/");
 
-    let routes = room.or(files);
+    let routes = room.or(rooms).or(files);
 
     warp::serve(routes).run(([0, 0, 0, 0], 1239)).await;
+}
+
+async fn list_rooms(rooms: GlobalRooms) -> Result<impl warp::reply::Reply, warp::Rejection> {
+    let mut room_list = Vec::new();
+    {
+        let rooms_lookup = rooms.read().await;
+        for (name, locked_room) in rooms_lookup.iter() {
+            let room = locked_room.read().await;
+            if room.public && room.phase == Phase::Lobby {
+                room_list.push(RoomSummary {
+                    name: name.clone(),
+                    game: room.game.clone(),
+                    players: room.players.len(),
+                    limit: 0,
+                });
+            }
+        }
+    };
+    Ok(warp::reply::json(&room_list))
 }
 
 async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
@@ -109,6 +138,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
         if rooms_lookup.get(&login.room).is_none() {
             info!("[{}] Creating room", login.room);
             let mut new_room = Room::default();
+            new_room.public = true;
             new_room.game = "wd".into(); // WD
             new_room.phase = Phase::Lobby;
             rooms_lookup.insert(login.room.clone(), Arc::new(RwLock::new(new_room)));
