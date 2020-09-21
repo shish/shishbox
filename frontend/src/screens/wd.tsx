@@ -1,9 +1,19 @@
 import { h } from "hyperapp";
 import { WebSocketSend } from "hyperapp-fx";
-import { Screen, MsgScreen, Sfx } from "./base";
+import { Screen, MsgScreen, Sfx, ProgressPie } from "./base";
 import { socket_name } from "../shishbox";
 import { suggestions } from "../lib/sentences";
 import new_round from "../static/new-round.mp3";
+
+
+function getProgress(state: State): number {
+    let wd = state.room as WdRoom;
+    let lens = wd.stacks.map(s => s.length);
+    let round = Math.min(...lens);
+    let working = lens.filter(x => x == round);
+    return (wd.stacks.length - working.length) / wd.stacks.length;
+}
+
 
 /* ====================================================================
 = Text Input Screen
@@ -44,6 +54,7 @@ const InitInput = ({
     <Screen
         settings={state.settings}
         header={"Write an inspiring sentence"}
+        right={<ProgressPie value={getProgress(state)} />}
         footer={
             <input
                 type="button"
@@ -86,6 +97,7 @@ const TextInput = ({ state, stack }: { state: State, stack: Array<[string, strin
     <Screen
         settings={state.settings}
         header={"Describe this"}
+        right={<ProgressPie value={getProgress(state)} />}
         footer={
             <input
                 type="button"
@@ -157,6 +169,7 @@ const DrawInput = ({ state, stack, mode }: { state: State, stack: Array<[string,
     <Screen
         settings={state.settings}
         header={<span>Draw "{stack[stack.length - 1][1]}"</span>}
+        right={<ProgressPie value={getProgress(state)} />}
         footer={
             <input
                 type="button"
@@ -271,6 +284,7 @@ const GameOver = ({ state }: { state: State }) => (
     <Screen
         settings={state.settings}
         header={"Game Finished"}
+        right={null}
         footer={<input type="button" value="Leave" onclick={LeaveAction} />}
     >
         <Sfx state={state} src={new_round} />

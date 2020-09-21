@@ -13,7 +13,7 @@ function ToggleSound(state: State): State {
 }
 
 export const Screen = (
-    { settings, header, footer }: { settings: Settings, header: string; footer: any },
+    { settings, header, right, footer }: { settings: Settings, right: any, header: string; footer: any },
     children,
 ) => (
     <main>
@@ -30,7 +30,7 @@ export const Screen = (
             >
                 {header}
             </h1>
-            <i class="fas fa-cogs-x" />
+            {right || <i class="fas fa-cogs-x" />}
         </header>
         <article>{children}</article>
         <footer>{footer}</footer>
@@ -39,9 +39,9 @@ export const Screen = (
 
 export const MsgScreen = (
     { settings, header, footer }: { settings: Settings, header: string; footer: any },
-    children,
+    children: Array<any>,
 ) => (
-    <Screen settings={settings} header={header} footer={footer}>
+    <Screen settings={settings} header={header} right={null} footer={footer}>
         <div class={"inputBlock"}>
             <p>{...children}</p>
         </div>
@@ -51,3 +51,17 @@ export const MsgScreen = (
 export const Sfx = ({state, src}: {state: State; src: string}) => (
      <audio autoplay={state.settings.sound} src={src} />
 )
+
+export function ProgressPie({value}: {value: number}) {
+    let r = 10;
+    let c = 2 * Math.PI * r;
+    let p = c * value;
+
+    return <svg style={{width: "4rem", height: "4rem"}} viewBox="0 0 64 64">
+        <g transform="rotate(-90 32 32)">
+            <circle cx="32" cy="32" r={r*2} stroke="black" stroke-width="2" fill="none" />
+            <circle cx="32" cy="32" r={r} stroke="black" stroke-width={r*2} fill="none"
+                stroke-dasharray={p+", "+c} />
+        </g>
+    </svg>;
+}
