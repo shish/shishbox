@@ -36,8 +36,6 @@ const About = () => (
     </div>
 );
 
-// 7 16 12
-//    3  2 = 5
 export const Login = ({ state }: { state: State }) => (
     <Screen settings={state.settings} header={"Join a Game"} right={null} footer={<About />}>
         <input
