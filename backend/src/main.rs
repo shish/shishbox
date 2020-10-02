@@ -42,6 +42,64 @@ struct Room {
     players: Vec<Player>,
     stacks: Vec<Vec<(String, String)>>, // WD
 }
+
+impl Room {
+    fn command(&mut self, login: &RoomLogin, cmd: &Command) {
+        match cmd.cmd.as_str() {
+            "start" => {
+                self.phase = Phase::Game;
+            }
+            "submit" => {
+                // WD
+                if let Some(pos) = self.players.iter().position(|x| *x.sess == login.sess) {
+                    let players = self.stacks.len();
+                    let round = self.stacks.iter().map(|s| s.len()).min().unwrap();
+                    let my_stack = (pos + round) % players;
+                    debug!("[{}] {} submitted {}", login.room, login.user, cmd.data);
+
+                    let data_is_img = cmd.data.starts_with("data:");
+                    let prev_is_img = match self.stacks[my_stack].len() {
+                        0 => true,
+                        _ => self.stacks[my_stack].last().unwrap().1.starts_with("data:"),
+                    };
+                    if prev_is_img == data_is_img {
+                        warn!("[{}] {} ignoring dupe submission", login.room, login.user);
+                    } else {
+                        self.stacks[my_stack].push((login.user.clone(), cmd.data.clone()));
+
+                        let round = self.stacks.iter().map(|s| s.len()).min().unwrap();
+                        if round == players {
+                            self.phase = Phase::GameOver;
+                        }
+                    }
+                }
+            }
+            _ => {
+                error!(
+                    "[{}] Unrecognised message from {}: {:?}",
+                    login.room, login.user, cmd
+                );
+            }
+        }
+    }
+
+    async fn sync(&self) {
+        // Something happened. Serialize the current room state and
+        // broadcast it to everybody in the room.
+        // TODO: Broadcast a diff?
+        let msg = Message::text(serde_json::to_string(self).unwrap());
+        for player in self.players.iter() {
+            if let Some(conn) = &player.conn {
+                if let Err(_) = conn.send(Ok(msg.clone())) {
+                    // The tx is disconnected, our `user_disconnected` code
+                    // should be happening in another task, nothing more to
+                    // do here.
+                }
+            }
+        }
+    }
+}
+
 type Rooms = HashMap<String, Arc<RwLock<Room>>>;
 type GlobalRooms = Arc<RwLock<Rooms>>;
 
@@ -168,7 +226,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
             sess: login.sess.clone(),
             conn: Some(tx),
         });
-        sync_room(&room).await;
+        room.sync().await;
     }
 
     // Read from the websocket, update room state, broadcast updates
@@ -177,45 +235,10 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
             true => serde_json::from_str(msg.to_str().unwrap()).unwrap(),
             false => break,
         };
-        match cmd.cmd.as_str() {
-            "start" => {
-                let mut room = locked_room.write().await;
-                room.phase = Phase::Game;
-                sync_room(&room).await;
-            }
-            "submit" => {
-                // WD
-                let mut room = locked_room.write().await;
-                if let Some(pos) = room.players.iter().position(|x| *x.sess == login.sess) {
-                    let players = room.stacks.len();
-                    let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                    let my_stack = (pos + round) % players;
-                    info!("[{}] {} submitted {}", login.room, login.user, cmd.data);
-
-                    let data_is_img = cmd.data.starts_with("data:");
-                    let prev_is_img = match room.stacks[my_stack].len() {
-                        0 => true,
-                        _ => room.stacks[my_stack].last().unwrap().1.starts_with("data:"),
-                    };
-                    if prev_is_img == data_is_img {
-                        warn!("[{}] {} ignoring dupe submission", login.room, login.user);
-                    } else {
-                        room.stacks[my_stack].push((login.user.clone(), cmd.data.clone()));
-
-                        let round = room.stacks.iter().map(|s| s.len()).min().unwrap();
-                        if round == players {
-                            room.phase = Phase::GameOver;
-                        }
-                    }
-                }
-                sync_room(&room).await;
-            }
-            _ => {
-                error!(
-                    "[{}] Unrecognised message from {}: {:?}",
-                    login.room, login.user, cmd
-                );
-            }
+        {
+            let mut room = locked_room.write().await;
+            room.command(&login, &cmd);
+            room.sync().await;
         }
     }
 
@@ -243,23 +266,7 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: RoomLogin) {
     {
         let room = locked_room.read().await;
         if room.phase != Phase::GameOver {
-            sync_room(&room).await;
-        }
-    }
-}
-
-async fn sync_room(room: &Room) {
-    // Something happened. Serialize the current room state and
-    // broadcast it to everybody in the room.
-    // TODO: Broadcast a diff?
-    let msg = Message::text(serde_json::to_string(room).unwrap());
-    for player in room.players.iter() {
-        if let Some(conn) = &player.conn {
-            if let Err(_) = conn.send(Ok(msg.clone())) {
-                // The tx is disconnected, our `user_disconnected` code
-                // should be happening in another task, nothing more to
-                // do here.
-            }
+            room.sync().await;
         }
     }
 }
