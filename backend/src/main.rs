@@ -17,7 +17,22 @@ struct Player {
     #[serde(skip)]
     sess: String,
     #[serde(skip)]
-    conn: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>, // Message
+    conn: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
+}
+
+impl Player {
+    fn send(&self, data: &Room) {
+        // TODO: Broadcast a diff?
+        let msg = Message::text(serde_json::to_string(data).unwrap());
+        if let Some(conn) = &self.conn {
+            if let Err(_) = conn.send(Ok(msg.clone())) {
+                // The tx is disconnected, our `user_disconnected` code
+                // should be happening in another task, nothing more to
+                // do here.
+            }
+        }
+
+    }
 }
 
 #[derive(PartialEq, Serialize, Deserialize)]
@@ -41,6 +56,12 @@ struct Room {
     phase: Phase,
     players: Vec<Player>,
     stacks: Vec<Vec<(String, String)>>, // WD
+}
+
+#[derive(Deserialize, Default, Debug)]
+struct Command {
+    cmd: String,
+    data: String,
 }
 
 impl Room {
@@ -86,16 +107,8 @@ impl Room {
     async fn sync(&self) {
         // Something happened. Serialize the current room state and
         // broadcast it to everybody in the room.
-        // TODO: Broadcast a diff?
-        let msg = Message::text(serde_json::to_string(self).unwrap());
         for player in self.players.iter() {
-            if let Some(conn) = &player.conn {
-                if let Err(_) = conn.send(Ok(msg.clone())) {
-                    // The tx is disconnected, our `user_disconnected` code
-                    // should be happening in another task, nothing more to
-                    // do here.
-                }
-            }
+            player.send(self);
         }
     }
 }
@@ -121,12 +134,6 @@ struct RoomLogin {
     room: String,
     user: String,
     sess: String,
-}
-
-#[derive(Deserialize, Default, Debug)]
-struct Command {
-    cmd: String,
-    data: String,
 }
 
 #[tokio::main]
