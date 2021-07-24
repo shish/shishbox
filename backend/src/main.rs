@@ -65,7 +65,7 @@ async fn main() {
 
     let routes = room.or(rooms).or(files);
 
-    warp::serve(routes).run(([0, 0, 0, 0], 1239)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
 }
 
 async fn list_rooms(rooms: GlobalRooms) -> Result<impl warp::reply::Reply, warp::Rejection> {
