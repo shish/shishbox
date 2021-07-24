@@ -1,5 +1,5 @@
 /// <reference path='./shishbox.d.ts'/>
-import h from 'hyperapp-jsx-pragma';
+import h from "hyperapp-jsx-pragma";
 import { app } from "hyperapp";
 import { WebSocketListen } from "hyperapp-fx";
 import { MsgScreen } from "./screens/base";

@@ -1,4 +1,4 @@
-import h from 'hyperapp-jsx-pragma';
+import h from "hyperapp-jsx-pragma";
 import { Screen } from "./base";
 
 function LoginAction(state: State): State {
