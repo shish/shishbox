@@ -8,7 +8,7 @@ RUN npm run build
 RUN sed -i 's/require("buffer").Buffer;//' dist/*.js
 
 # output backend code in /app/target
-FROM rust:stretch AS build-backend
+FROM rust:1.53 AS build-backend
 COPY backend/Cargo.toml backend/Cargo.lock /app/
 WORKDIR /app
 RUN mkdir src && echo "fn main() {println!(\"stub\")}" > /app/src/main.rs && cargo build --release && rm -rf src target/release/deps/shishbox*
