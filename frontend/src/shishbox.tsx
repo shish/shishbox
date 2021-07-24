@@ -18,7 +18,7 @@ if (!sess) {
 
 let state: State = {
     conn: {
-        user: DEV ? username : (sessionStorage.getItem("user") || ""),
+        user: DEV ? username : sessionStorage.getItem("user") || "",
         room: DEV ? "WDLF" : null,
         sess: sess,
     },
@@ -31,16 +31,15 @@ let state: State = {
     error: null,
     settings: {
         sound: !DEV,
-    }
+    },
 };
 
 try {
     state.settings = {
         ...state.settings,
-        ...JSON.parse(localStorage.getItem("settings") || "{}")
+        ...JSON.parse(localStorage.getItem("settings") || "{}"),
     };
-}
-catch(err) {
+} catch (err) {
     console.log("Error loading state:", err);
 }
 
@@ -50,10 +49,17 @@ const ResetAction = (state: State) => ({
 });
 
 function view(state: State) {
+    return <body width="42">hello world</body>;
     let screen = null;
     if (state.error !== null) {
         screen = (
-            <MsgScreen settings={state.settings} header={"Error"} footer={<input type="button" value="Leave" onclick={ResetAction} />}>
+            <MsgScreen
+                settings={state.settings}
+                header={"Error"}
+                footer={
+                    <input type="button" value="Leave" onclick={ResetAction} />
+                }
+            >
                 {state.error}
             </MsgScreen>
         );
@@ -111,7 +117,12 @@ function getOpenWebSocketListener(state: State): WebSocketListen {
             action(state: State, msg: MessageEvent): State {
                 let resp = JSON.parse(msg.data);
                 if (resp.error) {
-                    return {...state, loading: null, error: resp.error, conn: {...state.conn, room: null}}
+                    return {
+                        ...state,
+                        loading: null,
+                        error: resp.error,
+                        conn: { ...state.conn, room: null },
+                    };
                 }
                 return { ...state, loading: null, room: resp };
             },

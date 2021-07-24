@@ -14,26 +14,34 @@ const StartAction = (state: State) => [
     }),
 ];
 
-const LeaveAction = (state: State) => ({
-    ...state,
-    conn: {
-        ...state.conn,
-        room: null,
-    }
-} as State);
+const LeaveAction = (state: State) =>
+    ({
+        ...state,
+        conn: {
+            ...state.conn,
+            room: null,
+        },
+    } as State);
 
 export const Lobby = ({ state }: { state: State }) => (
     <MsgScreen
         settings={state.settings}
         header={"Writey Drawey"}
         footer={
-            (state.room.players[0].name == state.conn.user && state.room.players.length > 1) ?
-                <input type="button" value="Start Game" onclick={StartAction} /> :
+            state.room.players[0].name == state.conn.user &&
+            state.room.players.length > 1 ? (
+                <input type="button" value="Start Game" onclick={StartAction} />
+            ) : (
                 <input type="button" value="Leave" onclick={LeaveAction} />
+            )
         }
     >
         Room code is <b>{state.conn.room.toUpperCase()}</b>
-        <ol class="players">{state.room.players.map(p => <li>{p.name}</li>)}</ol>
+        <ol class="players">
+            {state.room.players.map((p) => (
+                <li>{p.name}</li>
+            ))}
+        </ol>
         Waiting for other players to connect...
     </MsgScreen>
 );

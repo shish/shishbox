@@ -1,6 +1,5 @@
 import { createSentence } from "sentence-engine";
 
-
 /* ====================================================================
 = Example sentences
 ==================================================================== */
@@ -32,7 +31,16 @@ const templates = [
 ];
 
 let vocabulary = {
-    race: ["robot", "elf", "alien", "skeleton", "dragon", "ghost", "mermaid", "brain"],
+    race: [
+        "robot",
+        "elf",
+        "alien",
+        "skeleton",
+        "dragon",
+        "ghost",
+        "mermaid",
+        "brain",
+    ],
     job: [
         "chef",
         "wizard",
@@ -75,12 +83,20 @@ let vocabulary = {
     event: ["birthday party", "job interview"],
     building: ["hotel", "house", "bank", "hospital", "spaceship", "mountain"],
     weather: ["cloud", "rainbow"],
-    car: ["car", "truck", "bus", "golf cart", "monster truck", "bicycle", "hamster ball"],
+    car: [
+        "car",
+        "truck",
+        "bus",
+        "golf cart",
+        "monster truck",
+        "bicycle",
+        "hamster ball",
+    ],
 };
 vocabulary["people"] = vocabulary["race"].concat(vocabulary["animal"]);
 
 export const suggestions = shuffleArray(
-    templates.map(t => createSentence(t, vocabulary).get()),
+    templates.map((t) => createSentence(t, vocabulary).get()),
 ).splice(0, 5);
 
 export const username = createSentence("{race} {job}", vocabulary).get();
