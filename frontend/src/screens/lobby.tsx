@@ -1,4 +1,4 @@
-import { h } from "hyperapp";
+import h from 'hyperapp-jsx-pragma';
 import { WebSocketSend } from "hyperapp-fx";
 import { MsgScreen } from "./base";
 import { socket_name } from "../shishbox";

@@ -1,7 +1,8 @@
 /// <reference path='./shishbox.d.ts'/>
-import { app, h } from "hyperapp";
+import h from 'hyperapp-jsx-pragma';
+import { app } from "hyperapp";
 import { WebSocketListen } from "hyperapp-fx";
-import { Screen, MsgScreen } from "./screens/base";
+import { MsgScreen } from "./screens/base";
 import { Login } from "./screens/login";
 import { Lobby } from "./screens/lobby";
 import { WriteyDrawey } from "./screens/wd";
@@ -49,7 +50,6 @@ const ResetAction = (state: State) => ({
 });
 
 function view(state: State) {
-    return <body width="42">hello world</body>;
     let screen = null;
     if (state.error !== null) {
         screen = (

@@ -1,4 +1,4 @@
-import { h } from "hyperapp";
+import h from 'hyperapp-jsx-pragma';
 
 function ToggleSound(state: State): State {
     let new_state = {
