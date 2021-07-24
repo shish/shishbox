@@ -1,5 +1,5 @@
 # output frontend code in /app/dist
-FROM node:11 AS build-frontend
+FROM node:14 AS build-frontend
 COPY frontend/package.json frontend/package-lock.json /app/
 WORKDIR /app
 RUN npm install

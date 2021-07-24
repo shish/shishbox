@@ -3,7 +3,7 @@ import { WebSocketSend } from "hyperapp-fx";
 import { Screen, MsgScreen, Sfx, ProgressPie } from "./base";
 import { socket_name } from "../shishbox";
 import { suggestions } from "../lib/sentences";
-import new_round from "../static/new-round.mp3";
+import new_round from "url:../static/new-round.mp3";
 
 
 function getProgress(state: State): number {

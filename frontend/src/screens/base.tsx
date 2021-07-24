@@ -43,7 +43,7 @@ export const MsgScreen = (
 ) => (
     <Screen settings={settings} header={header} right={null} footer={footer}>
         <div class={"inputBlock"}>
-            <p>{...children}</p>
+            <p>{children}</p>
         </div>
     </Screen>
 );
