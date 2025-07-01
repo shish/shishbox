@@ -5,11 +5,12 @@ authors = ["Shish <shish@shishnet.org>"]
 edition = "2018"
 
 [dependencies]
-warp = "0.2"
-parking_lot = "0.10.0"
+warp = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "0.2", features = ["macros"] }
+#tokio = { version = "0.2", features = ["macros", "sync", "rt-core"] } # 1.45.1
+tokio = { version = "1.45", features = ["full"] }
 futures = "*"
 pretty_env_logger = "*"
 log = "0.4"
+tokio-stream = "0.1.17"

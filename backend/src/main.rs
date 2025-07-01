@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
 
@@ -91,7 +92,8 @@ async fn user_connected(ws: WebSocket, rooms: GlobalRooms, login: LoginArgs) {
     // Split the socket into a sender and receive of messages.
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
-    tokio::task::spawn(rx.forward(user_ws_tx).map(|result| {
+    let rx_stream = UnboundedReceiverStream::new(rx);
+    tokio::task::spawn(rx_stream.forward(user_ws_tx).map(|result| {
         if let Err(e) = result {
             error!("websocket send error: {}", e);
         }

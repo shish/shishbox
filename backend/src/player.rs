@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc};
-use warp::ws::{Message};
+use tokio::sync::mpsc;
+use warp::ws::Message;
 
 use crate::room;
 
@@ -25,7 +25,5 @@ impl Player {
                 // do here.
             }
         }
-
     }
 }
-

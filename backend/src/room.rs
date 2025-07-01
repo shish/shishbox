@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::player;
+use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
